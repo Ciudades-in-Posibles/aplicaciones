@@ -69,6 +69,6 @@ functions/                    servidor (codebase «aplicaciones»)
 - `npm run build`, y después `npx -y firebase-tools@latest deploy --only hosting:transmisor,hosting:visor,hosting:consola` para publicar.
 - `npx -y firebase-tools@latest deploy --only firestore:transmisor` para publicar las reglas.
 - `npx -y firebase-tools@latest deploy --only functions:aplicaciones` para publicar la función (necesita el secreto `OPENROUTER_API_KEY` en Secret Manager).
-- App Check: cuando exista la clave de reCAPTCHA Enterprise, ponerla en `VITE_RECAPTCHA_SITE_KEY` antes del build y pasar `EXIGIR_APP_CHECK` a `true` en `functions/index.js`. Nunca se exige en Firestore.
+- App Check: la clave de reCAPTCHA Enterprise («Transmisor», solo dominios del Transmisor) está en `.env.production` como `VITE_RECAPTCHA_SITE_KEY` desde el 1 nov 2026. Hacia el 10 nov se pasa `EXIGIR_APP_CHECK` a `true` en `functions/index.js`. Nunca se exige en Firestore.
 
 Ver `docs/arquitectura.md` y `docs/stack.md`.
