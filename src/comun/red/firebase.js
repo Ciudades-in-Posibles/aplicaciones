@@ -10,7 +10,7 @@ const firebaseConfig = {
   projectId: 'ciudades-in-posibles',
   storageBucket: 'ciudades-in-posibles.firebasestorage.app',
   messagingSenderId: '1000818729379',
-  appId: '1:1000818729379:web:8836f64d7cf8b8526b7a16'
+  appId: '1:1000818729379:web:0c918f3e09f12ab46b7a16' // app web «Transmisor» (App Check propio; la 8836… es del Cronista)
 };
 
 export const app = getApps()[0] || initializeApp(firebaseConfig);
