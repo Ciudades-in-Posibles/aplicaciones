@@ -1,0 +1,26 @@
+{
+  "name": "transmisor-ciudades-inposibles",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "test": "node --test test/*.test.js",
+    "dev:local": "VITE_EMULADORES=1 vite --host",
+    "emuladores": "npx -y firebase-tools@latest emulators:start --only functions,firestore,auth --project ciudades-in-posibles"
+  },
+  "dependencies": {
+    "firebase": "^11.3.0",
+    "idb": "^8.0.0",
+    "jszip": "^3.10.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.1.0",
+    "vite-plugin-pwa": "^0.21.1"
+  }
+}

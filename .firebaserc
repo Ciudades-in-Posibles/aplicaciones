@@ -1,0 +1,20 @@
+{
+  "projects": {
+    "default": "ciudades-in-posibles"
+  },
+  "targets": {
+    "ciudades-in-posibles": {
+      "hosting": {
+        "transmisor": [
+          "transmisor-ciudadesinposibles"
+        ],
+        "visor": [
+          "visor-ciudadesinposibles"
+        ],
+        "consola": [
+          "consola-ciudadesinposibles"
+        ]
+      }
+    }
+  }
+}

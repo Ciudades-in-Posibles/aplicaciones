@@ -1,0 +1,73 @@
+/* Cartas de registro para imprimir, una por señal de la mesa.
+   Adaptadas de public/css/cartas.css del sitio (carta de registro y colores de canal).
+   Cada carta mide 63 × 88 mm; seis por hoja (3 × 2) en carta u oficio horizontal, con marcas de corte. */
+
+@page { size: letter landscape; margin: 10mm; }
+
+.cp-capa {
+  --font-titular: var(--f);
+  --font-mono: var(--mono);
+  position: fixed; inset: 0; z-index: 60; overflow: auto;
+  background: var(--fondo, #1b1b1d); color: var(--crema);
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+
+/* Carta de registro y colores de canal */
+.cp-capa .k1 { --k: var(--rojo); } .cp-capa .k2 { --k: var(--naranja); } .cp-capa .k3 { --k: var(--amarillo); } .cp-capa .k4 { --k: var(--lima); } .cp-capa .k5 { --k: var(--menta); } .cp-capa .k6 { --k: var(--turquesa); } .cp-capa .k7 { --k: var(--azul); } .cp-capa .k8 { --k: var(--naranja-claro); } .cp-capa .k9 { --k: var(--violeta); }
+.cp-capa .ct { container-type: inline-size; position: relative; aspect-ratio: 63 / 88; background: var(--k, var(--papel)); color: var(--calle); border-radius: .9rem .45rem 1rem .5rem; overflow: hidden; box-shadow: 0 0 0 2px var(--calle); }
+.cp-capa .ct-in { position: absolute; inset: 0; font-family: var(--font-titular); line-height: 1.1; }
+.cp-capa .ct.k9 { color: var(--crema); }
+.cp-capa .ct-dial { position: absolute; display: flex; gap: .8cqw; left: 6.3cqw; right: 6.3cqw; top: 65cqw; height: 7.3cqw; }
+.cp-capa .ct-dial i { flex: 1; display: grid; place-items: center; background: var(--calle); color: var(--crema); font: 500 normal 4.4cqw/1 var(--font-mono); border-radius: .8cqw .3cqw .8cqw .3cqw; }
+.cp-capa .ct-dial i.on { background: var(--crema); color: var(--calle); font-weight: 700; box-shadow: 0 0 0 .5cqw var(--calle); }
+.cp-capa .ct-foto { position: absolute; left: 0; top: 0; width: 100%; height: 95.455%; overflow: hidden; background: var(--calle); }
+.cp-capa .ct-foto img { position: absolute; left: 0; top: 100%; width: 133.333%; height: 75%; transform-origin: 0 0; transform: rotate(-90deg) scale(1.04); object-fit: cover; filter: grayscale(1); }
+.cp-capa .ct-franja { position: absolute; left: 0; right: 0; bottom: 0; height: 21.6%; background: var(--k); border-top: 2.4cqw solid var(--calle); padding: 2.4cqw 6.3cqw; display: grid; align-content: start; gap: .6cqw; font: 500 3.6cqw/1.15 var(--font-mono); }
+.cp-capa .ct-franja b { font: 800 6cqw/1.1 var(--font-titular); }
+.cp-capa .ct-ficha { position: absolute; left: 4.8cqw; top: 4.8cqw; width: 41.3cqw; height: 27cqw; background: var(--k); border: 1.9cqw solid var(--calle); border-radius: 4.8cqw 1.6cqw 4.8cqw 1.6cqw; color: var(--calle); }
+.cp-capa .ct-ficha b { position: absolute; left: 3cqw; top: -1cqw; font-weight: 800; font-size: 16cqw; line-height: 1; }
+.cp-capa .ct-ficha em { position: absolute; left: 15cqw; top: 2.6cqw; font-style: normal; font-weight: 800; font-size: 5.7cqw; }
+.cp-capa .ct-ficha .ct-dial { left: 3cqw; right: 3cqw; top: auto; bottom: 3cqw; height: 4.8cqw; gap: .6cqw; }
+
+/* Lo que se agrega para la Consola: la franja y la ficha aguantan textos largos */
+.cp-capa .ct { width: 100%; }
+.cp-capa .ct-franja b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; font-size: 5.2cqw; }
+.cp-capa .ct-franja span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cp-capa .ct-ficha em { right: 2cqw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Pantalla: barra, vista previa de las hojas y botón */
+.cp-barra {
+  position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  padding: 12px 20px; background: var(--calle); border-bottom: 2px solid var(--filete);
+}
+.cp-barra p { margin: 0; flex: 1 1 240px; font: 500 .9375rem/1.4 var(--f); }
+.cp-vista { display: grid; justify-items: center; gap: 20px; padding: 24px 12px 48px; }
+.cp-hoja { box-sizing: border-box; width: 259.4mm; height: 195.9mm; padding-top: 5.95mm; background: #fff; box-shadow: 0 2px 12px rgb(0 0 0 / .5); zoom: .6; break-inside: avoid; break-after: page; }
+.cp-hoja:last-child { break-after: auto; }
+.cp-grilla { display: grid; grid-template-columns: repeat(3, 63mm); grid-template-rows: repeat(2, 88mm); gap: 8mm; justify-content: center; }
+
+/* Cada carta con cuatro marcas de corte, a 1 mm del borde y de 3 mm de largo */
+.cp-celda { position: relative; width: 63mm; height: 88mm; }
+.cp-celda::before {
+  content: ""; position: absolute; inset: -4mm; pointer-events: none;
+  --m: linear-gradient(#000, #000);
+  background:
+    var(--m) 0 4mm / 3mm .2mm,
+    var(--m) 4mm 0 / .2mm 3mm,
+    var(--m) 100% 4mm / 3mm .2mm,
+    var(--m) calc(100% - 4mm) 0 / .2mm 3mm,
+    var(--m) 0 calc(100% - 4mm) / 3mm .2mm,
+    var(--m) 4mm 100% / .2mm 3mm,
+    var(--m) 100% calc(100% - 4mm) / 3mm .2mm,
+    var(--m) calc(100% - 4mm) 100% / .2mm 3mm;
+  background-repeat: no-repeat;
+}
+
+@media print {
+  body.cp-imprimiendo { background: #fff !important; }
+  body.cp-imprimiendo #raiz { display: none !important; }
+  .cp-capa { position: static; overflow: visible; background: #fff; }
+  .cp-barra { display: none; }
+  .cp-vista { display: block; padding: 0; }
+  .cp-hoja { zoom: 1; width: auto; height: auto; padding: 0; box-shadow: none; }
+}

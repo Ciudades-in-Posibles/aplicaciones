@@ -1,0 +1,110 @@
+rules_version = '2';
+
+// Reglas de la base «transmisor».
+// Equipos y pantallas entran con Auth anónimo. El código de mesa es el id del documento:
+// se puede pedir por id (get) pero no listar. Las mesas las crea y cierra la Consola (Google, lista de correos).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    function esEquipo(mesa) {
+      return autenticado() && exists(/databases/$(database)/documents/mesas/$(mesa)/equipos/$(request.auth.uid));
+    }
+
+    function esPantalla(mesa) {
+      return autenticado() && exists(/databases/$(database)/documents/mesas/$(mesa)/pantallas/$(request.auth.uid));
+    }
+
+    // Consola: quien administra entra con Google. La lista de correos vive en el documento
+    // admin/consola (campo «correos»), que ningún cliente puede leer ni escribir; se edita
+    // en la consola de Firebase. Sin ese documento, nadie administra.
+    function esConsola() {
+      return autenticado()
+        && request.auth.token.get('email_verified', false) == true
+        && request.auth.token.get('email', '') in get(/databases/$(database)/documents/admin/consola).data.get('correos', []);
+    }
+
+    // Las mesas sin el campo «abierta» cuentan como abiertas.
+    function abierta(mesa) {
+      return get(/databases/$(database)/documents/mesas/$(mesa)).data.get('abierta', true) == true;
+    }
+
+    function texto(d, campo, maximo) {
+      return d[campo] is string && d[campo].size() <= maximo;
+    }
+
+    match /admin/{doc} {
+      allow read, write: if false;
+    }
+
+    match /mesas/{mesa} {
+      allow get: if autenticado();
+      allow list: if esConsola();
+      allow create: if esConsola()
+        && request.resource.data.keys().hasOnly(['nombre', 'abierta', 'creada'])
+        && texto(request.resource.data, 'nombre', 60)
+        && request.resource.data.abierta is bool
+        && mesa.matches('^[A-Z0-9]{4,16}$');
+      allow update: if esConsola()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'abierta'])
+        && texto(request.resource.data, 'nombre', 60)
+        && request.resource.data.abierta is bool;
+      // «Borrar mesa» en la Consola: primero vacía las subcolecciones y al final borra la mesa.
+      allow delete: if esConsola();
+
+      // Llave única del nombre de equipo dentro de la mesa.
+      match /nombres/{llave} {
+        allow get: if autenticado();
+        allow list, delete: if esConsola();
+        allow create: if autenticado() && abierta(mesa)
+          && request.resource.data.keys().hasOnly(['uid'])
+          && request.resource.data.uid == request.auth.uid
+          && llave.size() >= 2 && llave.size() <= 40;
+        allow update: if false;
+      }
+
+      match /equipos/{uid} {
+        allow get: if autenticado() && request.auth.uid == uid;
+        allow read: if esEquipo(mesa) || esPantalla(mesa) || esConsola();
+        allow delete: if esConsola();
+        allow create: if autenticado() && request.auth.uid == uid && abierta(mesa)
+          && request.resource.data.keys().hasOnly(['nombre', 'llave', 'creado'])
+          && texto(request.resource.data, 'nombre', 32)
+          && existsAfter(/databases/$(database)/documents/mesas/$(mesa)/nombres/$(request.resource.data.llave))
+          && getAfter(/databases/$(database)/documents/mesas/$(mesa)/nombres/$(request.resource.data.llave)).data.uid == uid;
+        allow update: if false;
+      }
+
+      match /pantallas/{uid} {
+        allow create: if autenticado() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['creada']);
+        allow get: if autenticado() && request.auth.uid == uid;
+        allow list, delete: if esConsola();
+        allow update: if false;
+      }
+
+      // Señales al aire: solo las escribe la función transmisorTransmitir (Admin SDK), que lee
+      // la toma, filtra rostros y aplica el tope. Nadie las edita; su autor o la Consola las borran.
+      match /senales/{senal} {
+        allow read: if esEquipo(mesa) || esPantalla(mesa) || esConsola();
+        allow create: if false;
+        allow update: if false;
+        allow delete: if (esEquipo(mesa) && resource.data.uid == request.auth.uid) || esConsola();
+
+        match /respuestas/{respuesta} {
+          // La pregunta se retiró el 31 oct: quedan las respuestas heredadas, que se leen y se borran.
+          allow read: if esEquipo(mesa) || esPantalla(mesa) || esConsola();
+          allow create: if false;
+          allow update: if false;
+          // la borra quien la escribió, el autor de la señal al sacarla del aire, o la Consola
+          allow delete: if (esEquipo(mesa) && resource.data.uid == request.auth.uid)
+            || (esEquipo(mesa) && get(/databases/$(database)/documents/mesas/$(mesa)/senales/$(senal)).data.uid == request.auth.uid)
+            || esConsola();
+        }
+      }
+    }
+  }
+}
