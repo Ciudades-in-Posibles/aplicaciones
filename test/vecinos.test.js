@@ -5,7 +5,7 @@ import { ZONA, CELDAS, CELDA_BIBLIOTECA, enZona, etiquetas } from '../src/comun/
 import {
   ANDARES, celdaDelVecino, rastrosDelVecino, rastroMasCercano, intensidad, relojDelJuego, casaDe, habitatDe, rumbo,
   RASTROS_POR_VECINO, DISTANCIA_ENCUENTRO, ALCANCE_SENAL, CELDAS_DE_VECINOS, VECINOS_DE_PRUEBA,
-  RADIO_CASA, recorridoDelDia, inicioDelDia
+  RADIO_CASA, recorridoDelDia, inicioDelDia, CELDAS_FRANJA, FRANJA_BIBLIOTECA
 } from '../src/comun/dominio/vecinos.js';
 import { RE_VECINO } from '../functions/src/entrada.js';
 
@@ -125,17 +125,34 @@ test('vecinos de prueba: nueve, uno por canal, con ids válidos, y nunca cruzan 
   }
 });
 
-test('casas: los de tierra a RADIO_CASA o menos de la biblioteca; los del agua en la ribera más cercana', () => {
+test('casas: lo más cerca posible de la biblioteca (RADIO_CASA, o 2 celdas más allá de la primera del hábitat)', () => {
   for (const v of [...vecinos, ...VECINOS_DE_PRUEBA]) {
     const casa = casaDe(v);
     const d = gridDistance(CELDA_BIBLIOTECA, casa);
     assert.ok(habitatDe(v.andar).includes(casa), v.id);
-    if (v.andar === 'rio') {
-      const dmin = Math.min(...habitatDe('rio').map((c) => gridDistance(CELDA_BIBLIOTECA, c)));
-      assert.ok(d <= dmin + 2, `${v.id} a ${d}`);
-    } else {
-      assert.ok(d <= RADIO_CASA, `${v.id} a ${d}`);
+    const dmin = Math.min(...habitatDe(v.andar).map((c) => gridDistance(CELDA_BIBLIOTECA, c)));
+    assert.ok(d <= Math.max(RADIO_CASA, dmin + 2), `${v.id} a ${d}`);
+    if (v.andar !== 'rio') assert.ok(d <= 7, `${v.id} a ${d}: lejos de la biblioteca`);
+  }
+});
+
+test('franja: ningún rastro a 3 celdas o menos de la biblioteca; desde adentro nunca hay encuentro, pero sí señal', () => {
+  const bib = CELDAS.filter((c) => etiquetas(c).includes('biblioteca'));
+  assert.equal(FRANJA_BIBLIOTECA, 3);
+  assert.ok(FRANJA_BIBLIOTECA > DISTANCIA_ENCUENTRO);
+  for (const b of bib) assert.ok(CELDAS_FRANJA.has(b));
+  for (const andar of Object.keys(ANDARES)) {
+    for (const c of habitatDe(andar)) assert.ok(!CELDAS_FRANJA.has(c), `${andar}: ${c} en la franja`);
+  }
+  for (const v of VECINOS_DE_PRUEBA) {
+    for (let m = 0; m < 24 * 60; m += 5) {
+      for (const r of rastrosDelVecino(v, hora(6) + m * 60000)) assert.ok(!CELDAS_FRANJA.has(r.celda), `${v.id} dejó rastro en la franja`);
     }
+  }
+  for (let m = 2 * 60; m < 11 * 60; m += 15) {
+    const t = hora(6) + m * 60000;
+    for (const b of bib) assert.equal(rastroMasCercano(b, VECINOS_DE_PRUEBA, t).encontrado, false);
+    assert.ok(rastroMasCercano(CELDA_BIBLIOTECA, VECINOS_DE_PRUEBA, t).senal > 0, 'sin señal en la biblioteca');
   }
 });
 

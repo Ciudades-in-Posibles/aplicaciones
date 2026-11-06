@@ -167,12 +167,12 @@ function MapaTubo({ centro, objetivo, encontrado, rumboTel, flecha, alMarcar, ca
   const giro = rumboTel == null ? 0 : -rumboTel;
   const objetivoXY = objetivo && encontrado ? centroDe(objetivo, origen) : null;
   return (
-    <svg className="radar" viewBox={vb} role="img" aria-label="Mapa de la zona alrededor de ustedes. Toquen una celda para marcar dónde están.">
+    <svg className={`radar ${alMarcar ? 'marcable' : ''}`} viewBox={vb} role="img" aria-label={alMarcar ? 'Mapa de la zona alrededor de ustedes. Toquen una celda para marcar dónde están.' : 'Mapa de la zona alrededor de ustedes.'}>
       <g transform={`rotate(${giro})`}>
         {poligonos.map((p) => {
           const et = etiquetas(p.celda);
           const clase = p.celda === centro ? 'aqui' : objetivo === p.celda && encontrado ? 'hallado' : et.includes('agua') ? 'agua' : et.includes('cruce') ? 'cruce' : et.includes('biblioteca') ? 'bib' : '';
-          return <polygon key={p.celda} points={p.puntos} className={clase} style={clase === 'hallado' ? { fill: `var(--c${canal.n})` } : undefined} onClick={() => alMarcar(p.celda)} />;
+          return <polygon key={p.celda} points={p.puntos} className={clase} style={clase === 'hallado' ? { fill: `var(--c${canal.n})` } : undefined} onClick={alMarcar ? () => alMarcar(p.celda) : undefined} />;
         })}
         {objetivoXY && <circle cx={objetivoXY[0]} cy={objetivoXY[1]} r="9" className="punto" />}
       </g>
@@ -208,6 +208,9 @@ export default function Antena({ vecinos, dePrueba, canales, pausa, alRegistrar 
   const video = useRef(null);
   useEffect(() => { if (video.current && cam.flujo) video.current.srcObject = cam.flujo; }, [cam.flujo, mirar]);
 
+  // la celda se marca a mano solo si la ubicación no llega (bloqueada, sin GPS) o ya se marcó a mano:
+  // con GPS, el mapa solo se mira (si no, se podría «encontrar» un rastro sin moverse)
+  const puedeMarcar = pos?.fuente === 'manual' || (!pos && !['esperando', 'buscando'].includes(estado));
   const dentro = pos && enZona(pos.celda);
   const hallazgo = useMemo(() => (dentro && vecinos.length ? rastroMasCercano(pos.celda, vecinos, t) : null), [dentro, pos?.celda, vecinos, t]);
   const encontrado = !!hallazgo?.encontrado;
@@ -235,8 +238,8 @@ export default function Antena({ vecinos, dePrueba, canales, pausa, alRegistrar 
           <div className={`tube antena-tubo ${mirar ? 'mirar' : ''}`} aria-live="polite">
             {mirar && (cam.flujo ? <video ref={video} autoPlay playsInline muted /> : <div className="vacio">{cam.fallo || 'Abriendo la cámara…'}</div>)}
             {!mirar && (pos
-              ? <MapaTubo centro={dentro ? pos.celda : CELDA_BIBLIOTECA} conEquipo={dentro} objetivo={hallazgo?.celda} encontrado={encontrado} rumboTel={brujula.rumboTel} flecha={flecha} alMarcar={marcar} canal={canal} />
-              : <MapaTubo centro={CELDA_BIBLIOTECA} conEquipo={false} objetivo={null} encontrado={false} rumboTel={null} flecha={null} alMarcar={marcar} canal={canal} />)}
+              ? <MapaTubo centro={dentro ? pos.celda : CELDA_BIBLIOTECA} conEquipo={dentro} objetivo={hallazgo?.celda} encontrado={encontrado} rumboTel={brujula.rumboTel} flecha={flecha} alMarcar={puedeMarcar ? marcar : null} canal={canal} />
+              : <MapaTubo centro={CELDA_BIBLIOTECA} conEquipo={false} objetivo={null} encontrado={false} rumboTel={null} flecha={null} alMarcar={puedeMarcar ? marcar : null} canal={canal} />)}
             <div className="ruido sin-senal" style={{ opacity: estatica }} aria-hidden="true" />
             <div className="grano" aria-hidden="true" />
             {encontrado && (!mirar || enCuadro) && (

@@ -66,6 +66,17 @@ export const CELDAS_DE_VECINOS = (() => {
   return sur;
 })();
 
+/**
+ * Franja sin rastros alrededor de la biblioteca: las celdas a FRANJA_BIBLIOTECA celdas o menos de
+ * cualquier celda de la biblioteca (≈ 56 m). Ningún vecino pasa por ahí, así que desde adentro nunca
+ * se encuentra un rastro (el encuentro es a DISTANCIA_ENCUENTRO = 2), aunque el GPS del edificio
+ * se corra una celda; la Antena sí muestra señal, para que salgan a buscar.
+ * Decisión de MangleRojo, 6 nov 2026.
+ */
+export const FRANJA_BIBLIOTECA = 3;
+const CELDAS_BIBLIOTECA = CELDAS.filter((c) => etiquetas(c).includes('biblioteca'));
+export const CELDAS_FRANJA = new Set(CELDAS.filter((c) => CELDAS_BIBLIOTECA.some((b) => distancia(b, c) <= FRANJA_BIBLIOTECA)));
+
 const CELDAS_AGUA = CELDAS.filter((c) => etiquetas(c).includes('agua'));
 
 /** Celdas del lado sur a `n` celdas o menos del agua: la ribera de los andares que siguen el río. */
@@ -75,12 +86,12 @@ function ribera(n) {
 
 const cacheHabitat = new Map();
 
-/** Celdas del lado sur donde puede estar un andar, en orden estable. */
+/** Celdas del lado sur, fuera de la franja de la biblioteca, donde puede estar un andar, en orden estable. */
 export function habitatDe(andar) {
   if (cacheHabitat.has(andar)) return cacheHabitat.get(andar);
   const a = ANDARES[andar] || ANDARES[ANDAR_POR_DEFECTO];
   const enRibera = a.ribera ? ribera(a.ribera) : null;
-  const sur = CELDAS.filter((c) => CELDAS_DE_VECINOS.has(c) && !etiquetas(c).includes('cruce'));
+  const sur = CELDAS.filter((c) => CELDAS_DE_VECINOS.has(c) && !CELDAS_FRANJA.has(c) && !etiquetas(c).includes('cruce'));
   const celdas = sur.filter((c) => (enRibera ? enRibera.has(c) : etiquetas(c).some((e) => a.habitat.includes(e))));
   const base = celdas.length ? celdas : sur;
   const lista = sinIslasChicas(base, a.salto);
@@ -112,14 +123,14 @@ function sinIslasChicas(celdas, salto) {
 
 const andarDe = (vecino) => (andarValido(vecino?.andar) ? vecino.andar : ANDAR_POR_DEFECTO);
 
-export const RADIO_CASA = 5; // celdas (≈ 95 m) alrededor de la biblioteca
+export const RADIO_CASA = 5; // celdas (≈ 95 m) desde el centro de la biblioteca
 
 const cacheCasas = new Map();
 
 /**
  * Celdas del hábitat donde puede quedar una casa: a RADIO_CASA celdas o menos de la biblioteca.
- * Si el hábitat queda lejos (la ribera está a unos 280 m), las más cercanas: hasta 2 celdas más
- * allá de la primera.
+ * Si el hábitat queda más lejos (la franja deja las primeras celdas a unas 5; la ribera está a unos
+ * 280 m), las más cercanas: hasta 2 celdas más allá de la primera. Las casas quedan a 95–130 m.
  */
 export function casasPosibles(andar) {
   if (cacheCasas.has(andar)) return cacheCasas.get(andar);

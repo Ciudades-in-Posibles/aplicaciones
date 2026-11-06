@@ -7,7 +7,8 @@ const MIN = 60 * 1000;
 
 /**
  * Andares: cómo se mueve un vecino. Propuesta del asistente; la Consola elige uno por vecino.
- * Todos viven del lado sur del río Arzobispo (CELDAS_DE_VECINOS en vecinos.js), sin pisar el agua.
+ * Todos viven del lado sur del río Arzobispo (CELDAS_DE_VECINOS en vecinos.js), sin pisar el agua,
+ * y fuera de la franja de 3 celdas alrededor de la biblioteca (CELDAS_FRANJA).
  * - habitat: etiquetas de la zona donde puede estar (nunca en «cruce»)
  * - ribera: en lugar de las etiquetas, las celdas a esa cantidad de celdas del agua o menos
  * - prefiere: etiquetas que pesan el triple al elegir el paso
@@ -19,7 +20,7 @@ export const ANDARES = {
   // la orilla sur sola queda partida en islas de 5 y 11 celdas: la ribera de 3 celdas (≈ 55 m) le da 35
   rio: { nombre: 'Por el agua', ejemplo: 'quebrada, renacuajo', habitat: ['orilla'], ribera: 3, prefiere: ['orilla'], pasoMin: 5, salto: 1 },
   copas: { nombre: 'Entre copas', ejemplo: 'mirla, colibrí', habitat: ['arboles', 'prado', 'orilla'], prefiere: ['arboles', 'orilla'], pasoMin: 5, salto: 3 },
-  suelo: { nombre: 'A ras del suelo', ejemplo: 'hormigas, lombriz', habitat: ['prado', 'orilla', 'arboles', 'edificio', 'biblioteca'], prefiere: ['prado'], pasoMin: 10, salto: 1 },
+  suelo: { nombre: 'A ras del suelo', ejemplo: 'hormigas, lombriz', habitat: ['prado', 'orilla', 'arboles', 'edificio'], prefiere: ['prado'], pasoMin: 10, salto: 1 },
   noche: { nombre: 'De noche', ejemplo: 'zarigüeya, polilla', habitat: ['prado', 'arboles', 'orilla'], prefiere: ['arboles'], pasoMin: 5, salto: 1, noche: { desde: (17 * 60 + 30) * MIN } }
 };
 
