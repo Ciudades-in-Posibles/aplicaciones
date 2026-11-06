@@ -21,25 +21,74 @@ const delta = (a, b) => ((((a - b) % 360) + 540) % 360) - 180;
 
 /**
  * Dónde está el equipo. La ubicación precisa nunca sale del teléfono: solo se usa para saber la celda.
- * @returns {{pos: null | {celda: string, precision: number|null, fuente: 'gps'|'manual'}, fallo: string, marcar: (c: string) => void, usarGps: () => void}}
+ *
+ * Si el navegador todavía no tiene el permiso, no se pide sola: se pide con el toque en «Usar la
+ * ubicación del teléfono» (algunos navegadores, como Firefox en Android, la niegan si el aviso se cruza
+ * con otra cosa). Si queda bloqueada, «Volver a intentar» la pide de nuevo sin recargar, y si el permiso
+ * cambia en los ajustes, vuelve a arrancar sola.
+ *
+ * estado: 'esperando' (leyendo el permiso) | 'pedir' (falta el toque) | 'buscando' | 'lista' | 'manual'
+ *   | 'bloqueada' (el navegador o el teléfono no la dejan usar) | 'apagada' (no llega) | 'lenta' | 'sinGps'
+ * @returns {{pos: null | {celda: string, precision: number|null, fuente: 'gps'|'manual'}, estado: string, pedir: () => void, marcar: (c: string) => void, usarGps: () => void}}
  */
 function useUbicacion(activa) {
   const [gps, setGps] = useState(null);
   const [manual, setManual] = useState(celdaDePrueba);
+  const [permiso, setPermiso] = useState(null); // 'granted' | 'prompt' | 'denied' | 'sinApi'; null mientras se lee
+  const [pedida, setPedida] = useState(false); // ya tocaron «Usar la ubicación del teléfono» o «Volver a intentar»
+  const [intento, setIntento] = useState(0);
   const [fallo, setFallo] = useState('');
+
   useEffect(() => {
-    if (!activa || manual) return;
-    if (!navigator.geolocation) { setFallo('Este teléfono no da su ubicación.'); return; }
-    const id = navigator.geolocation.watchPosition(
-      (p) => { setFallo(''); setGps({ celda: latLngToCell(p.coords.latitude, p.coords.longitude, RESOLUCION), precision: p.coords.accuracy, fuente: 'gps' }); },
-      (e) => setFallo(e.code === 1 ? 'Sin permiso de ubicación.' : 'No llega la ubicación.'),
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
-    );
+    let vivo = true;
+    let estado = null;
+    const alCambiar = () => {
+      if (!vivo || !estado) return;
+      setPermiso(estado.state);
+      if (estado.state === 'granted') { setFallo(''); setIntento((i) => i + 1); }
+    };
+    if (!navigator.permissions?.query) { setPermiso('sinApi'); return; }
+    navigator.permissions.query({ name: 'geolocation' })
+      .then((s) => { if (!vivo) return; estado = s; setPermiso(s.state); s.addEventListener('change', alCambiar); })
+      .catch(() => vivo && setPermiso('sinApi'));
+    return () => { vivo = false; estado?.removeEventListener('change', alCambiar); };
+  }, []);
+
+  const alLlegar = useCallback((p) => {
+    setFallo('');
+    setGps({ celda: latLngToCell(p.coords.latitude, p.coords.longitude, RESOLUCION), precision: p.coords.accuracy, fuente: 'gps' });
+  }, []);
+  const alFallar = useCallback((e) => setFallo(e.code === 1 ? 'bloqueada' : e.code === 2 ? 'apagada' : 'lenta'), []);
+
+  const arranca = permiso === 'granted' || permiso === 'sinApi' || pedida;
+  useEffect(() => {
+    if (!activa || manual || !arranca) return;
+    if (!navigator.geolocation) { setFallo('sinGps'); return; }
+    const id = navigator.geolocation.watchPosition(alLlegar, alFallar, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
     return () => navigator.geolocation.clearWatch(id);
-  }, [activa, manual]);
+  }, [activa, manual, arranca, intento, alLlegar, alFallar]);
+
+  /** Se llama desde un toque: el pedido sale en ese mismo toque y después sigue el seguimiento. */
+  const pedir = useCallback(() => {
+    setFallo(''); setPedida(true); setIntento((i) => i + 1);
+    navigator.geolocation?.getCurrentPosition(alLlegar, alFallar, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+  }, [alLlegar, alFallar]);
+
   const pos = manual ? { celda: manual, precision: null, fuente: 'manual' } : gps;
-  return { pos, fallo: manual ? '' : fallo, marcar: setManual, usarGps: () => { setManual(null); setGps(null); } };
+  const estado = manual ? 'manual' : gps ? 'lista' : fallo || (permiso === null ? 'esperando' : permiso === 'denied' && !pedida ? 'bloqueada' : !arranca ? 'pedir' : 'buscando');
+  return { pos, estado, pedir, marcar: setManual, usarGps: () => { setManual(null); setGps(null); pedir(); } };
 }
+
+/** Lo que dice el lateral mientras no hay ubicación, y si lleva botón para pedirla. */
+const SIN_UBICACION = {
+  esperando: { texto: 'Buscando dónde están…' },
+  buscando: { texto: 'Buscando dónde están…' },
+  lenta: { texto: 'Todavía no llega la ubicación…' },
+  pedir: { texto: 'La Antena usa la ubicación del teléfono para seguir los rastros. No sale de este teléfono.', boton: 'Usar la ubicación del teléfono' },
+  bloqueada: { texto: 'La ubicación está bloqueada para el Transmisor. Permítanla en el candado junto a la dirección y revisen que el teléfono deje usarla al navegador.', boton: 'Volver a intentar' },
+  apagada: { texto: 'El teléfono no está dando su ubicación. Revisen que esté encendida.', boton: 'Volver a intentar' },
+  sinGps: { texto: 'Este teléfono no da su ubicación.' }
+};
 
 /** Rumbo del teléfono (0 = norte). En iPhone hay que pedir permiso con un toque. */
 function useBrujula() {
@@ -153,7 +202,7 @@ export default function Antena({ vecinos, dePrueba, canales, pausa, alRegistrar 
     return () => clearInterval(id);
   }, [pausa]);
 
-  const { pos, fallo, marcar, usarGps } = useUbicacion(!pausa);
+  const { pos, estado, pedir, marcar, usarGps } = useUbicacion(!pausa);
   const brujula = useBrujula();
   const cam = useCamara(mirar && !pausa);
   const video = useRef(null);
@@ -213,7 +262,7 @@ export default function Antena({ vecinos, dePrueba, canales, pausa, alRegistrar 
                 : <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M2 14s4.5-7 12-7 12 7 12 7-4.5 7-12 7S2 14 2 14Z" fill="none" stroke="currentColor" strokeWidth="2.6" /><circle cx="14" cy="14" r="3.6" fill="currentColor" /></svg>}
             </button>
             {brujula.disponible && (
-              <button className={`btn-a ${brujula.activa ? 'on' : ''}`} onClick={brujula.activar} disabled={brujula.activa} aria-label={brujula.activa ? 'Brújula encendida' : 'Encender la brújula'}>
+              <button className={`btn-a ${brujula.activa ? 'on' : ''}`} data-permiso onClick={brujula.activar} disabled={brujula.activa} aria-label={brujula.activa ? 'Brújula encendida' : 'Encender la brújula'}>
                 <svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="10.5" fill="none" stroke="currentColor" strokeWidth="2.4" /><path d="m14 6 3.5 8H10.5Z" fill="currentColor" /><path d="m14 22-3.5-8h7Z" fill="none" stroke="currentColor" strokeWidth="1.6" /></svg>
               </button>
             )}
@@ -233,14 +282,18 @@ export default function Antena({ vecinos, dePrueba, canales, pausa, alRegistrar 
         ) : !vecinos.length ? (
           <p className="aviso">Esta mesa todavía no tiene vecinos.</p>
         ) : !pos ? (
-          <p className="aviso">{fallo ? `${fallo} Toquen en el mapa la celda donde están.` : 'Buscando dónde están…'}</p>
+          <>
+            <p className="aviso">{SIN_UBICACION[estado]?.texto || 'Buscando dónde están…'}</p>
+            {SIN_UBICACION[estado]?.boton && <div className="acciones"><button className="btn" data-permiso onClick={pedir}>{SIN_UBICACION[estado].boton}</button></div>}
+            {!['esperando', 'buscando'].includes(estado) && <p className="etq">También pueden tocar en el mapa la celda donde están.</p>}
+          </>
         ) : !dentro ? (
           <p className="aviso">Están fuera del parque de juego{Number.isFinite(lejos) ? `, a unos ${lejos} m` : ''}. La flecha lleva a la biblioteca.</p>
         ) : (
           <p className="lente-lat">{senal > 0.6 ? 'Muy cerca.' : senal > 0.25 ? 'Hay señal. Sigan la flecha.' : 'Solo estática. Caminen y miren si se aclara.'}</p>
         )}
         {pos?.fuente === 'gps' && pos.precision > PRECISION_DEBIL && <p className="etq">Ubicación débil: ±{Math.round(pos.precision)} m</p>}
-        {pos?.fuente === 'manual' && <button className="enlace etq" onClick={usarGps}>Usar la ubicación del teléfono</button>}
+        {pos?.fuente === 'manual' && <button className="enlace etq" data-permiso onClick={usarGps}>Usar la ubicación del teléfono</button>}
         {dePrueba && <p className="etq">Vecinos de prueba · solo en este teléfono</p>}
         <p className="etq">Cuidado con la orilla y las vías.</p>
       </div>

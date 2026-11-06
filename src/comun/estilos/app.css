@@ -599,9 +599,10 @@ button { cursor: pointer; }
 .c-tecla .dot { width: 12px; height: 12px; }
 .c-tecla.on { background: var(--menta); color: var(--calle); }
 .c-tecla.on .dot { background: var(--calle); }
-.c-codigo { display: grid; grid-template-columns: 1fr auto auto; gap: 4px 10px; align-items: center; }
-.c-codigo .etq { grid-column: 1 / -1; }
-.c-codigo b { font: 900 2rem/1 var(--f); letter-spacing: .04em; }
+/* etiqueta y código en su propia línea; Copiar y QR debajo */
+.c-codigo { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+.c-codigo .etq, .c-codigo b { flex-basis: 100%; }
+.c-codigo b { font: 900 2rem/1 var(--f); letter-spacing: .04em; overflow-wrap: anywhere; }
 .fila-campo { display: flex; gap: 8px; }
 .fila-campo input { flex: 1; min-width: 0; }
 .c-equipos { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: calc(100dvh - 190px); overflow-y: auto; }

@@ -62,7 +62,8 @@ export default function App() {
   useEffect(() => {
     if (!j.inicio) return;
     const alTocar = (e) => {
-      if (enPantallaCompleta() || e.target.closest?.('.salir')) return;
+      // los toques que piden un permiso (ubicación, brújula) no piden además pantalla completa: se cruzarían
+      if (enPantallaCompleta() || e.target.closest?.('.salir, [data-permiso]')) return;
       pedirPantallaCompleta({ horizontal: true });
     };
     window.addEventListener('click', alTocar, true);
