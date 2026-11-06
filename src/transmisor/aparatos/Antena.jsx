@@ -266,7 +266,7 @@ export default function Antena({ vecinos, dePrueba, canales, pausa, alRegistrar 
             </button>
             {brujula.disponible && (
               <button className={`btn-a ${brujula.activa ? 'on' : ''}`} data-permiso onClick={brujula.activar} disabled={brujula.activa} aria-label={brujula.activa ? 'Brújula encendida' : 'Encender la brújula'}>
-                <svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="10.5" fill="none" stroke="currentColor" strokeWidth="2.4" /><path d="m14 6 3.5 8H10.5Z" fill="currentColor" /><path d="m14 22-3.5-8h7Z" fill="none" stroke="currentColor" strokeWidth="1.6" /></svg>
+                <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M14 3.5a7.5 7.5 0 0 0-7.5 7.5c0 5.4 7.5 13.5 7.5 13.5s7.5-8.1 7.5-13.5A7.5 7.5 0 0 0 14 3.5Z" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" /><circle cx="14" cy="11" r="2.8" fill="currentColor" /></svg>
               </button>
             )}
           </div>
