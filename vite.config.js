@@ -26,6 +26,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,woff2,jpg,svg,png}'],
+        // three.js y el maletín (/maletin del Visor) no van a la caché de los teléfonos
+        globIgnores: ['**/three.module-*.js', '**/GLTFLoader-*.js', '**/OrbitControls-*.js', '**/RoomEnvironment-*.js', '**/meshopt_decoder.module-*.js', '**/Maletin-*.js'],
         navigateFallback: '/index.html'
       }
     })

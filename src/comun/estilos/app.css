@@ -724,3 +724,15 @@ button { cursor: pointer; }
 .mapa-r .base .camino.pedestrian { stroke-dasharray: none; }
 .mapa-r .base .nombre-via { fill: var(--crema); font: 600 7px/1 var(--mono); letter-spacing: .04em; text-anchor: middle; paint-order: stroke; stroke: var(--fondo); stroke-width: 2.5px; stroke-linejoin: round; opacity: .85; }
 @media (max-width: 800px) { .rastros { grid-template-columns: 1fr; } .mapa-r { height: 70dvh; } }
+
+/* ---------- Visor /maletin: el maletín en 3D sobre el fondo del sitio ---------- */
+.al-aire.maletin-v {
+  grid-template-columns: minmax(0, 1fr);
+  background-color: var(--fondo); background-image: var(--fondo-textura); background-size: auto, 240px 240px;
+}
+.escena-m { position: relative; min-height: 0; touch-action: none; cursor: grab; }
+.escena-m:active { cursor: grabbing; }
+.escena-m:focus-visible { outline: .3vw solid var(--amarillo); outline-offset: -.3vw; }
+.escena-m img, .escena-m canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+.escena-m.listo img { display: none; }
+.al-aire.maletin-v.quieto .escena-m { cursor: none; }

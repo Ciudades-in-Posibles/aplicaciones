@@ -317,6 +317,7 @@ export default function AlAire({ mosaico = false, rastros = false, raiz = '' }) 
           <button onClick={alternarPantallaCompleta}>Pantalla completa</button>
           <a href={mosaico || rastros ? raiz || '/' : `${raiz}/mosaico`}>{mosaico || rastros ? 'Televisor' : 'Mosaico'}</a>
           {!rastros && <a href={`${raiz}/rastros`}>Rastros</a>}
+          <a href={`${raiz}/maletin`}>Maletín</a>
           <button onClick={() => { localStorage.removeItem('transmisor-pantalla'); setSenales([]); setMesa(''); }}>Cambiar mesa</button>
         </span>
         <span>{senales.length === 1 ? '1 señal' : `${senales.length} señales`} · {conSenal.length} de 9 canales</span>
