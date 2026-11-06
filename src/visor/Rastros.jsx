@@ -12,6 +12,7 @@ const SALTO_MS = 10 * 60 * 1000; // ← y → mueven el reloj 10 minutos
 const HORA = new Intl.DateTimeFormat('es-CO', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const FONDOS = [['no', 'No'], ['dibujado', 'Dibujado'], ['osm', 'OSM']];
 const CLAVE_FONDO = 'transmisor-rastros-fondo';
+const CLAVE_VECINOS = 'transmisor-rastros-vecinos';
 const MARGEN_VISTA = 16; // metros alrededor de la zona
 // metros de mapa más allá de la vista, para que llene la pantalla: la zona es angosta y la pantalla ancha
 const MARGEN_FONDO = { x: 360, y: 160 };
@@ -202,10 +203,19 @@ export default function Rastros({ vecinos: vecinosMesa, senales }) {
   useEffect(() => {
     try { localStorage.setItem(CLAVE_FONDO, fondo); } catch { /* sin almacenamiento: solo dura esta vez */ }
   }, [fondo]);
+  // la capa de vecinos (senderos, casa y camino) se puede quitar para ver solo las tomas
+  const [conVecinos, setConVecinos] = useState(() => {
+    try { return localStorage.getItem(CLAVE_VECINOS) !== 'no'; } catch { return true; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(CLAVE_VECINOS, conVecinos ? 'si' : 'no'); } catch { /* solo dura esta vez */ }
+    if (!conVecinos) setSeguido(null);
+  }, [conVecinos]);
   useEffect(() => {
     const tecla = (e) => {
-      if (e.key !== 'm' && e.key !== 'M') return;
       if (e.target instanceof HTMLElement && e.target.closest('input, textarea')) return;
+      if (e.key === 'v' || e.key === 'V') { setConVecinos((x) => !x); return; }
+      if (e.key !== 'm' && e.key !== 'M') return;
       setFondo((f) => FONDOS[(FONDOS.findIndex(([k]) => k === f) + 1) % FONDOS.length][0]);
     };
     window.addEventListener('keydown', tecla);
@@ -264,13 +274,13 @@ export default function Rastros({ vecinos: vecinosMesa, senales }) {
             return <polygon key={p.celda} points={p.puntos} className={clase} />;
           })}
         </g>
-        {vSeguido && camino && (
+        {conVecinos && vSeguido && camino && (
           <g className="camino-r" style={{ '--c': `var(--c${vSeguido.canal})` }}>
             <polygon className="casa-r" points={puntosDe[camino.casa]} />
             {camino.pasos > 0 && <polyline className="dia-r" points={camino.puntos} />}
           </g>
         )}
-        {senderos.map(({ v, rastros }) => {
+        {conVecinos && senderos.map(({ v, rastros }) => {
           const cabeza = rastros[0];
           return (
             <g key={v.id} className={`vecino-r ${seguido && seguido !== v.id ? 'apagado' : ''}`} style={{ '--c': `var(--c${v.canal})` }}>
@@ -296,9 +306,9 @@ export default function Rastros({ vecinos: vecinosMesa, senales }) {
 
       <aside className="leyenda-r">
         <h2>Rastros</h2>
-        {dePrueba && <p className="aviso-r">Vecinos de prueba · la mesa todavía no tiene vecinos</p>}
-        <Reloj reloj={reloj} />
-        <ul>
+        {conVecinos && dePrueba && <p className="aviso-r">Vecinos de prueba · la mesa todavía no tiene vecinos</p>}
+        {conVecinos && <Reloj reloj={reloj} />}
+        {conVecinos && <ul>
           {vecinos.map((v) => {
             const c = CANALES[v.canal - 1];
             const on = seguido === v.id;
@@ -314,7 +324,7 @@ export default function Rastros({ vecinos: vecinosMesa, senales }) {
               </li>
             );
           })}
-        </ul>
+        </ul>}
         {seguido && <p className="pie-r">Tóquenlo otra vez o Esc para soltarlo</p>}
         <p className="pie-r">{conRastro.length === 1 ? '1 toma' : `${conRastro.length} tomas`} desde un rastro</p>
         <div className="fondo-r" role="group" aria-label="Mapa debajo de los hexágonos (tecla M)">
@@ -322,6 +332,11 @@ export default function Rastros({ vecinos: vecinosMesa, senales }) {
           {FONDOS.map(([k, etiqueta]) => (
             <button key={k} className={fondo === k ? 'on' : ''} aria-pressed={fondo === k} onClick={() => setFondo(k)}>{etiqueta}</button>
           ))}
+        </div>
+        <div className="fondo-r" role="group" aria-label="Capa de vecinos (tecla V)">
+          <span>Vecinos</span>
+          <button className={conVecinos ? 'on' : ''} aria-pressed={conVecinos} onClick={() => setConVecinos(true)}>Sí</button>
+          <button className={conVecinos ? '' : 'on'} aria-pressed={!conVecinos} onClick={() => setConVecinos(false)}>No</button>
         </div>
         {fondo === 'dibujado' && <p className="atrib-r">Datos © colaboradores de OpenStreetMap (ODbL)</p>}
         {fondo === 'osm' && <p className="atrib-r">Mapa © colaboradores de OpenStreetMap</p>}
