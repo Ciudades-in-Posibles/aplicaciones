@@ -599,7 +599,7 @@ button { cursor: pointer; }
 .c-tecla .dot { width: 12px; height: 12px; }
 .c-tecla.on { background: var(--menta); color: var(--calle); }
 .c-tecla.on .dot { background: var(--calle); }
-.c-codigo { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; }
+.c-codigo { display: grid; grid-template-columns: 1fr auto auto; gap: 4px 10px; align-items: center; }
 .c-codigo .etq { grid-column: 1 / -1; }
 .c-codigo b { font: 900 2rem/1 var(--f); letter-spacing: .04em; }
 .fila-campo { display: flex; gap: 8px; }

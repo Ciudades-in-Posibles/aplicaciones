@@ -5,7 +5,22 @@ import Televisor from './aparatos/Televisor.jsx';
 import Camara from './aparatos/Camara.jsx';
 import MesaTransmision from './aparatos/MesaTransmision.jsx';
 import { CartaCanal, CartaToma, CartaSenal } from './aparatos/Cartas.jsx';
-import Entrada, { FormularioMesa } from './Entrada.jsx';
+import Entrada, { FormularioMesa, otraMesa } from './Entrada.jsx';
+import { codigoDeEnlace } from '../comun/dominio/mesa.js';
+
+// El QR de la mesa abre el Transmisor con ?mesa=CÓDIGO. Se lee una vez y se quita de la URL,
+// para que recargar no vuelva a pedir unirse (se guarda aquí: el modo estricto llama dos veces).
+let enlace = null;
+function tomarEnlace() {
+  if (enlace !== null) return enlace;
+  enlace = codigoDeEnlace(location.search);
+  const u = new URL(location.href);
+  if (u.searchParams.has('mesa')) {
+    u.searchParams.delete('mesa');
+    history.replaceState(history.state, '', `${u.pathname}${u.search}${u.hash}`);
+  }
+  return enlace;
+}
 
 // la Antena trae h3-js: se carga solo al abrirla
 const Antena = lazy(() => import('./aparatos/Antena.jsx'));
@@ -22,6 +37,15 @@ export default function App() {
   const [aparato, setAparato] = useState('tv');
   const [carta, setCarta] = useState(null); // {tipo, ...}
   const [rastro, setRastro] = useState(null); // {canal, celda, vecino}: la próxima toma nace de este rastro
+  const [codigoEnlace, setCodigoEnlace] = useState(tomarEnlace);
+
+  // ya dentro de la app: el enlace abre «Unirse» con el código puesto, o avisa si el equipo está en otra mesa
+  useEffect(() => {
+    if (!j.listo || !j.inicio || !codigoEnlace) return;
+    if (!j.equipo) setCarta({ tipo: 'unirse', codigo: codigoEnlace });
+    else if (j.equipo.mesa !== codigoEnlace) setCarta({ tipo: 'equipo', otraMesa: codigoEnlace });
+    setCodigoEnlace('');
+  }, [j.listo, j.inicio, j.equipo, codigoEnlace]);
 
   useEffect(() => {
     if (!j.aviso) return;
@@ -50,7 +74,7 @@ export default function App() {
   const salir = () => { try { screen.orientation?.unlock?.(); } catch { /* sin soporte */ } salirDePantallaCompleta(); return j.salir(); };
 
   if (!j.listo) return null;
-  if (!j.inicio) return <Entrada equipo={j.equipo} alEntrar={entrar} alUnirse={unirse} alSalirDeMesa={j.salirDeMesa} />;
+  if (!j.inicio) return <Entrada equipo={j.equipo} alEntrar={entrar} alUnirse={unirse} alSalirDeMesa={j.salirDeMesa} codigoEnlace={codigoEnlace} />;
 
   const mandar = j.mandarAlAire;
 
@@ -130,7 +154,7 @@ export default function App() {
           <div className="carta" role="dialog" aria-modal="true" aria-label="Unirse a la mesa" style={{ background: 'var(--fondo)', color: 'var(--tinta)' }}>
             <div className="cab"><h2>Unirse a la mesa</h2></div>
             <p>Para transmitir, el equipo se une con el código de la mesa. Solo sale del teléfono lo que manden al aire.</p>
-            <FormularioMesa alUnirse={async (c, n) => { await j.unirse(c, n); setCarta(null); }} alCancelar={() => setCarta(null)} />
+            <FormularioMesa alUnirse={async (c, n) => { await j.unirse(c, n); setCarta(null); }} alCancelar={() => setCarta(null)} codigoInicial={carta.codigo} />
           </div>
         </div>
       )}
@@ -139,6 +163,7 @@ export default function App() {
           <div className="carta" role="dialog" aria-modal="true" aria-label="Equipo">
             <div className="cab"><h2>{j.equipo.nombre}</h2><button className="cerrar" onClick={() => setCarta(null)} aria-label="Cerrar">×</button></div>
             <p className="dato">Mesa {j.equipo.mesa} · {j.enLinea ? 'con señal' : 'sin señal'} · {j.cola.length} en cola</p>
+            {carta.otraMesa && <p className="aviso">{otraMesa(carta.otraMesa, j.equipo.mesa)}</p>}
             <p>Las tomas viven en este teléfono. Solo sale lo que mandan al aire.</p>
             <div className="acciones"><button className="btn sec" onClick={async () => { setCarta(null); await j.salirDeMesa(); salir(); }}>Salir de la mesa en este teléfono</button></div>
           </div>

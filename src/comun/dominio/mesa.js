@@ -14,6 +14,20 @@ export function codigoValido(codigo) {
   return c.length >= 4 && c.length <= 16;
 }
 
+export const TRANSMISOR = 'https://transmisor.ciudadesinposibles.net';
+
+/** El enlace que abre el Transmisor con el código de la mesa ya puesto (va en el QR de la mesa). */
+export function urlDeMesa(codigo) {
+  return `${TRANSMISOR}/?mesa=${normalizarCodigo(codigo)}`;
+}
+
+/** El código que trae un enlace `?mesa=…`, normalizado; '' si no trae uno válido. */
+export function codigoDeEnlace(search) {
+  let c = '';
+  try { c = new URLSearchParams(search || '').get('mesa') || ''; } catch { return ''; }
+  return codigoValido(c) ? normalizarCodigo(c) : '';
+}
+
 export function limpiarNombreEquipo(nombre) {
   return String(nombre || '').replace(/\s+/g, ' ').trim().slice(0, MAX_NOMBRE_EQUIPO);
 }

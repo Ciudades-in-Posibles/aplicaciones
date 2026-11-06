@@ -12,13 +12,13 @@ import { CANALES, canalValido } from '../../comun/dominio/canales.js';
 
 const W = ANCHO_TERMICA;
 const ALTO_CARTA = 88 * PUNTOS_POR_MM; // 704
-const ALTO_CORTE = 6 * PUNTOS_POR_MM; // franja con marcas de corte
+export const ALTO_CORTE = 6 * PUNTOS_POR_MM; // franja con marcas de corte
 const ALTO = ALTO_CARTA + ALTO_CORTE;
 const M = 12; // margen lateral
 const F = '"Gabarito", system-ui, sans-serif';
 const MONO = '"IBM Plex Mono", ui-monospace, monospace';
 
-async function fuentes() {
+export async function fuentes() {
   if (typeof document === 'undefined' || !document.fonts) return;
   await Promise.all([
     document.fonts.load(`900 80px ${F}`),
@@ -73,14 +73,14 @@ export const FORMATOS = [
 ];
 
 /** Marcas de corte a los dos lados, a media altura de la franja que empieza en `y`. */
-function marcasDeCorte(ctx, y) {
+export function marcasDeCorte(ctx, y) {
   const yc = y + ALTO_CORTE / 2;
   ctx.fillRect(0, yc - 1, 28, 3);
   ctx.fillRect(W - 28, yc - 1, 28, 3);
 }
 
 /** Grises (0 = negro) del lienzo, fila tras fila. */
-function grisesDe(ctx, alto) {
+export function grisesDe(ctx, alto) {
   const datos = ctx.getImageData(0, 0, W, alto).data;
   const gris = new Uint8Array(W * alto);
   for (let i = 0, j = 0; i < gris.length; i++, j += 4) {
@@ -89,7 +89,7 @@ function grisesDe(ctx, alto) {
   return gris;
 }
 
-function nuevoLienzo(alto) {
+export function nuevoLienzo(alto) {
   const lienzo = document.createElement('canvas');
   lienzo.width = W; lienzo.height = alto;
   const ctx = lienzo.getContext('2d');
@@ -182,7 +182,7 @@ export async function dibujarCarta(senal) {
 }
 
 /** PNG de los bits, para ver la carta tal como saldrá. */
-function bitsAPng(bits, alto) {
+export function bitsAPng(bits, alto) {
   const lienzo = document.createElement('canvas');
   lienzo.width = W; lienzo.height = alto;
   const ctx = lienzo.getContext('2d');

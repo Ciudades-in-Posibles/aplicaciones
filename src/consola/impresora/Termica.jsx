@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { peripage } from './peripage.js';
 import { prepararCarta, FORMATOS } from './cartaTermica.js';
+import { prepararQR } from './qrTermica.js';
 import './termica.css';
 
 const CLAVE_CONCENTRACION = 'consola-termica-concentracion';
@@ -33,7 +34,7 @@ function motivo(e) {
 }
 
 /** Estado de la impresora con los botones para conectarla y la concentración. */
-export function BarraImpresora({ ajustes }) {
+export function BarraImpresora({ ajustes, sinFormato = false }) {
   const { concentracion, setConcentracion, formato, setFormato } = ajustes;
   const { estado, nombre, hayBluetooth, haySerie } = usePeriPage();
   const [aviso, setAviso] = useState('');
@@ -57,12 +58,14 @@ export function BarraImpresora({ ajustes }) {
       )}
       {conectada && <button className="enlace" onClick={() => peripage.desconectar()}>Soltar</button>}
       <span className="tm-ajustes">
-        <label className="tm-conc">
-          <span className="etq">Formato</span>
-          <select value={formato} onChange={(e) => setFormato(e.target.value)}>
-            {FORMATOS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
-          </select>
-        </label>
+        {!sinFormato && (
+          <label className="tm-conc">
+            <span className="etq">Formato</span>
+            <select value={formato} onChange={(e) => setFormato(e.target.value)}>
+              {FORMATOS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+            </select>
+          </label>
+        )}
         <label className="tm-conc">
           <span className="etq">Tinta</span>
           <select value={concentracion} onChange={(e) => setConcentracion(e.target.value)}>
@@ -104,6 +107,41 @@ export function TermicaSenal({ senal }) {
       <BarraImpresora ajustes={ajustes} />
       <div className="acciones">
         <button className="btn aire" onClick={imprimir} disabled={!carta || estado !== 'lista'}>{estado === 'imprimiendo' ? 'Imprimiendo…' : formato === 'carta' ? 'Imprimir carta' : 'Imprimir imagen'}</button>
+      </div>
+      {aviso && <p className="tm-aviso">{aviso}</p>}
+    </div>
+  );
+}
+
+/** En la Consola, junto al código de mesa: el ticket con el QR que abre el Transmisor con el código puesto. */
+export function TermicaQR({ mesa }) {
+  const { estado } = usePeriPage();
+  const ajustes = useAjustes();
+  const { concentracion } = ajustes;
+  const [ticket, setTicket] = useState(null);
+  const [aviso, setAviso] = useState('');
+
+  useEffect(() => {
+    let vivo = true;
+    setTicket(null); setAviso('');
+    prepararQR(mesa, { concentracion: Number(concentracion) })
+      .then((c) => vivo && setTicket(c))
+      .catch(() => vivo && setAviso('No pudimos armar el QR de esta mesa.'));
+    return () => { vivo = false; };
+  }, [mesa.id, mesa.nombre, concentracion]);
+
+  async function imprimir() {
+    setAviso('');
+    try { await peripage.enviar(ticket.bytes); setAviso('Enviado a la impresora.'); }
+    catch (e) { setAviso(motivo(e)); }
+  }
+
+  return (
+    <div className="tm-senal">
+      <div className="tm-papel">{ticket ? <img src={ticket.vista} alt={`QR de la mesa ${mesa.id} en papel térmico`} /> : <span className="etq">Armando el QR…</span>}</div>
+      <BarraImpresora ajustes={ajustes} sinFormato />
+      <div className="acciones">
+        <button className="btn aire" onClick={imprimir} disabled={!ticket || estado !== 'lista'}>{estado === 'imprimiendo' ? 'Imprimiendo…' : 'Imprimir QR'}</button>
       </div>
       {aviso && <p className="tm-aviso">{aviso}</p>}
     </div>

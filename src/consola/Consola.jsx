@@ -4,7 +4,7 @@ import { CANALES } from '../comun/dominio/canales.js';
 import { mesaAbierta, resumenMesa } from '../comun/dominio/mesa.js';
 import Confirmar from '../comun/Confirmar.jsx';
 import Cartas from './Cartas.jsx';
-import { TermicaSenal } from './impresora/Termica.jsx';
+import { TermicaSenal, TermicaQR } from './impresora/Termica.jsx';
 import { exportarArchivo } from './archivo.js';
 import { ANDARES } from '../comun/dominio/andares.js';
 
@@ -149,6 +149,7 @@ function Mesa({ mesa }) {
   const [abierta, setAbierta] = useState(null);
   const [nombre, setNombre] = useState(mesa.nombre || '');
   const [copiado, setCopiado] = useState(false);
+  const [qr, setQr] = useState(false);
   const [aviso, setAviso] = useState(null); // {texto, mal?, reintentar?}: lo que pasa con el archivo o el borrado
   const [trabajando, setTrabajando] = useState(false);
   const [cartas, setCartas] = useState(false);
@@ -209,7 +210,9 @@ function Mesa({ mesa }) {
           <span className="etq">Código de mesa</span>
           <b>{mesa.id}</b>
           <button className="btn sec peq" onClick={async () => { await navigator.clipboard?.writeText(mesa.id); setCopiado(true); setTimeout(() => setCopiado(false), 1500); }}>{copiado ? 'Copiado' : 'Copiar'}</button>
+          <button className="btn sec peq" onClick={() => setQr((q) => !q)} aria-expanded={qr}>QR</button>
         </div>
+        {qr && <TermicaQR mesa={mesa} />}
         <form className="campo" onSubmit={(e) => { e.preventDefault(); red.renombrar(mesa.id, nombre); }}>
           <label htmlFor="mn">Nombre de la mesa</label>
           <div className="fila-campo">
