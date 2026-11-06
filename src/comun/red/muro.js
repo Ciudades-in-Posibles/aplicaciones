@@ -20,3 +20,10 @@ export function escucharAbierta(mesa, alCambiar, alFallar = () => {}) {
     alCambiar(mesaAbierta(snap.data()));
   }, alFallar);
 }
+
+/** Los vecinos de la mesa (los crea la Consola). Su posición se calcula en cada teléfono. */
+export function escucharVecinos(mesa, alCambiar, alFallar = () => {}) {
+  return onSnapshot(collection(db, 'mesas', mesa, 'vecinos'), (snap) => {
+    alCambiar(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  }, alFallar);
+}

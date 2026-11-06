@@ -108,21 +108,22 @@ test('carta impresa: fecha, texto y hojas de seis', () => {
 test('borrar mesa: el plan va en orden y con la ruta de cada documento', () => {
   const plan = planDeBorrado('PRUEBA1', {
     senales: [{ id: 's1', respuestas: ['r1', 'r2'] }, { id: 's2', respuestas: [] }],
-    equipos: ['u1'], nombres: ['parque'], pantallas: ['p1']
+    equipos: ['u1'], nombres: ['parque'], pantallas: ['p1'], vecinos: ['v1']
   });
-  assert.deepEqual(plan.map((e) => e.id), ['respuestas', 'senales', 'equipos', 'nombres', 'pantallas', 'mesa']);
+  assert.deepEqual(plan.map((e) => e.id), ['respuestas', 'senales', 'equipos', 'nombres', 'pantallas', 'vecinos', 'mesa']);
   assert.deepEqual(plan.map((e) => e.id), ETAPAS.map((e) => e.id));
   assert.deepEqual(plan[0].rutas, [['mesas', 'PRUEBA1', 'senales', 's1', 'respuestas', 'r1'], ['mesas', 'PRUEBA1', 'senales', 's1', 'respuestas', 'r2']]);
   assert.deepEqual(plan[1].rutas, [['mesas', 'PRUEBA1', 'senales', 's1'], ['mesas', 'PRUEBA1', 'senales', 's2']]);
   assert.deepEqual(plan[2].rutas, [['mesas', 'PRUEBA1', 'equipos', 'u1']]);
   assert.deepEqual(plan[3].rutas, [['mesas', 'PRUEBA1', 'nombres', 'parque']]);
   assert.deepEqual(plan[4].rutas, [['mesas', 'PRUEBA1', 'pantallas', 'p1']]);
-  assert.deepEqual(plan[5].rutas, [['mesas', 'PRUEBA1']]);
+  assert.deepEqual(plan[5].rutas, [['mesas', 'PRUEBA1', 'vecinos', 'v1']]);
+  assert.deepEqual(plan[6].rutas, [['mesas', 'PRUEBA1']]);
 });
 
 test('borrar mesa: una mesa vacía solo borra la mesa', () => {
   const plan = planDeBorrado('X', {});
-  assert.deepEqual(plan.map((e) => e.rutas.length), [0, 0, 0, 0, 0, 1]);
+  assert.deepEqual(plan.map((e) => e.rutas.length), [0, 0, 0, 0, 0, 0, 1]);
 });
 
 test('borrar mesa: lotes de a lo sumo 450', () => {

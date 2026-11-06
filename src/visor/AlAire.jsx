@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { CANALES, girarDial } from '../comun/dominio/canales.js';
 import { normalizarCodigo } from '../comun/dominio/mesa.js';
 import { unirPantalla } from '../comun/red/mesa.js';
-import { escucharAbierta, escucharMuro } from '../comun/red/muro.js';
+import { escucharAbierta, escucharMuro, escucharVecinos } from '../comun/red/muro.js';
 import { alternarPantallaCompleta, pedirPantallaCompleta } from '../comun/local/pantalla.js';
+
+// el mapa de rastros trae h3-js: se carga solo en /rastros
+const Rastros = lazy(() => import('./Rastros.jsx'));
 
 const TIC_MS = 1000; // en cada tic cambia una pantalla: la sintonía recorre el muro como una ola
 const FOCO_TICS = 12; // cada cuántos tics el rótulo pasa a otra pantalla
@@ -140,12 +143,13 @@ function Tele({ c, s, nombre, sintonia, alSintonizar, nombreDe, porCanal, sinEmi
  * Por defecto la principal va dentro del televisor del juego, y la «i» abre el rótulo al lado;
  * en /mosaico se ve con el muro de los nueve canales.
  */
-export default function AlAire({ mosaico = false, raiz = '' }) {
+export default function AlAire({ mosaico = false, rastros = false, raiz = '' }) {
   const [mesa, setMesa] = useState(() => normalizarCodigo(localStorage.getItem('transmisor-pantalla')));
   const [codigo, setCodigo] = useState('');
   const [error, setError] = useState('');
   const [senales, setSenales] = useState([]);
   const [abierta, setAbierta] = useState(true);
+  const [vecinos, setVecinos] = useState([]);
   const quieto = usePantalla(!!mesa);
   useEffect(() => { document.title = 'Visor · Ciudades(In)Posibles'; }, []);
 
@@ -157,10 +161,11 @@ export default function AlAire({ mosaico = false, raiz = '' }) {
       if (!vivo) return;
       const pararMuro = escucharMuro(mesa, (x) => { setSenales(x); setError(''); }, (err) => setError(motivo(err)));
       const pararMesa = escucharAbierta(mesa, setAbierta, (err) => setError(motivo(err)));
-      parar = () => { pararMuro(); pararMesa(); };
+      const pararVecinos = rastros ? escucharVecinos(mesa, setVecinos, (err) => setError(motivo(err))) : () => {};
+      parar = () => { pararMuro(); pararMesa(); pararVecinos(); };
     }).catch((err) => { setError(motivo(err)); setMesa(''); localStorage.removeItem('transmisor-pantalla'); });
     return () => { vivo = false; parar(); };
-  }, [mesa]);
+  }, [mesa, rastros]);
 
   // reloj del muro: un tic por segundo; el canal n cambia en los tics que le tocan
   const [tic, setTic] = useState(0);
@@ -297,8 +302,8 @@ export default function AlAire({ mosaico = false, raiz = '' }) {
   );
 
   return (
-    <main className={`al-aire ${mosaico ? '' : 'tele'} ${quieto ? 'quieto' : ''}`}>
-      {mosaico ? muro : tele}
+    <main className={`al-aire ${mosaico || rastros ? '' : 'tele'} ${rastros ? 'con-rastros' : ''} ${quieto ? 'quieto' : ''}`}>
+      {rastros ? <Suspense fallback={null}><Rastros vecinos={vecinos} senales={senales} /></Suspense> : mosaico ? muro : tele}
       {mosaico && !abierta && <Ajuste />}
       {/* proyectando, los errores también se ven: si no, la pantalla solo parece vacía */}
       {error && <p className="aviso-visor" role="alert">{error} Toquen «Cambiar mesa» y vuelvan a escribir el código.</p>}
@@ -310,7 +315,8 @@ export default function AlAire({ mosaico = false, raiz = '' }) {
         </span>
         <span className="mandos">
           <button onClick={alternarPantallaCompleta}>Pantalla completa</button>
-          <a href={mosaico ? raiz || '/' : `${raiz}/mosaico`}>{mosaico ? 'Televisor' : 'Mosaico'}</a>
+          <a href={mosaico || rastros ? raiz || '/' : `${raiz}/mosaico`}>{mosaico || rastros ? 'Televisor' : 'Mosaico'}</a>
+          {!rastros && <a href={`${raiz}/rastros`}>Rastros</a>}
           <button onClick={() => { localStorage.removeItem('transmisor-pantalla'); setSenales([]); setMesa(''); }}>Cambiar mesa</button>
         </span>
         <span>{senales.length === 1 ? '1 señal' : `${senales.length} señales`} · {conSenal.length} de 9 canales</span>

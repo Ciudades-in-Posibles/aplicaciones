@@ -113,3 +113,15 @@ test('carrera: si la señal aparece mientras se lee, sigue siendo al-aire', asyn
   });
   assert.deepEqual(r, { estado: 'al-aire', descripcion: 'Una grieta en el muro.' });
 });
+
+test('rastro: la señal guarda la celda del rastro y el vecino', async () => {
+  const { CELDA_BIBLIOTECA } = await import('../src/zona.js');
+  const db = escenario();
+  const d = entrada();
+  d.toma.celda = CELDA_BIBLIOTECA;
+  d.toma.vecino = 'vecino-mirla';
+  await transmitir({ db, uid: 'u1', datos: d, llamarLLM: limpia, ahora: AHORA });
+  const s = db.datos.get('mesas/ABCD1/senales/toma-0001-abcd');
+  assert.equal(s.celda, CELDA_BIBLIOTECA);
+  assert.equal(s.vecino, 'vecino-mirla');
+});

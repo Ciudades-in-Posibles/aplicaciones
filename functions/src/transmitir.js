@@ -42,7 +42,7 @@ export async function transmitir({ db, uid, datos, llamarLLM, lecturaFalsa: fals
     if (err instanceof EntradaInvalida) throw new HttpsError('invalid-argument', err.message);
     throw err;
   }
-  const { mesa, toma, canal } = entrada;
+  const { mesa, toma, canal, rastro } = entrada;
 
   const refMesa = db.doc(`mesas/${mesa}`);
   const refEquipo = db.doc(`mesas/${mesa}/equipos/${uid}`);
@@ -94,6 +94,7 @@ export async function transmitir({ db, uid, datos, llamarLLM, lecturaFalsa: fals
       descripcion: lectura.descripcion,
       imagen: toma.imagen,
       creada: toma.creada,
+      ...(rastro && { celda: rastro.celda, vecino: rastro.vecino }),
       hora: FieldValue.serverTimestamp()
     });
   } catch (err) {

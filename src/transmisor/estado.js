@@ -9,6 +9,7 @@ import { crearToma, editarToma, encolar, sacarDeCola as tomaFueraDeCola, volverA
 import { agregar, quitar, mover, sincronizar } from '../comun/dominio/tira.js';
 import { nuevoElemento } from '../comun/dominio/cola.js';
 import { iniciarAppCheck } from './appcheck.js';
+import { VECINOS_DE_PRUEBA } from '../comun/dominio/andares.js';
 
 // App Check se inicializa antes de cargar cualquier módulo que hable con Firebase (solo si hay clave)
 const conAppCheck = (cargar) => async () => { await iniciarAppCheck(); return cargar(); };
@@ -26,6 +27,7 @@ export function useJuego() {
   const [tira, setTira] = useState([]);
   const [cola, setCola] = useState([]);
   const [muro, setMuro] = useState([]);
+  const [vecinosMesa, setVecinosMesa] = useState([]);
   const [enLinea, setEnLinea] = useState(navigator.onLine);
   const [aviso, setAviso] = useState(null);
 
@@ -49,6 +51,7 @@ export function useJuego() {
       setCanal(await local.leerAjuste('canal', 1));
       setAbiertos(await local.leerAjuste('abiertos', {}));
       setMuro(await local.leerMuro());
+      setVecinosMesa(await local.leerAjuste('vecinos', []));
       // ya no hay «al aire de prueba»: las que quedaron así vuelven a la mesa de edición, con su canal
       for (const t of (await local.listarTomas()).filter((x) => x.prueba)) await local.guardarToma(deshacerPrueba(t));
       await recargar();
@@ -74,8 +77,10 @@ export function useJuego() {
       if (t?.estado === 'en-cola') await local.guardarToma(tomaFueraDeCola(t));
     }
     await local.guardarAjuste('equipo', null);
+    await local.guardarAjuste('vecinos', []);
     await local.guardarMuro([]);
     setMuro([]);
+    setVecinosMesa([]);
     setEquipo(null);
     await recargar();
   }, [recargar]);
@@ -143,6 +148,25 @@ export function useJuego() {
     return () => { vivo = false; parar(); };
   }, [equipo, quedarFuera]);
 
+  // Escuchar los vecinos de la mesa (la Antena los sigue); quedan guardados para verlos sin señal
+  useEffect(() => {
+    if (!equipo) return;
+    let parar = () => {};
+    let vivo = true;
+    (async () => {
+      const { asegurarSesion } = await mesaRed();
+      await asegurarSesion().catch(() => null);
+      const { escucharVecinos } = await muroRed();
+      if (!vivo) return;
+      parar = escucharVecinos(equipo.mesa, (v) => {
+        const limpios = v.map(({ id, nombre, canal, andar }) => ({ id, nombre, canal, andar }));
+        setVecinosMesa(limpios);
+        local.guardarAjuste('vecinos', limpios);
+      }, (err) => console.warn('Vecinos:', err));
+    })();
+    return () => { vivo = false; parar(); };
+  }, [equipo]);
+
   // ---- acciones ----
   const sintonizar = useCallback((n) => { setCanal(n); local.guardarAjuste('canal', n); }, []);
 
@@ -177,10 +201,11 @@ export function useJuego() {
     await local.guardarAjuste('abiertos', nuevos);
   }, [abiertos]);
 
-  const registrar = useCallback(async ({ imagen, nota }) => {
+  const registrar = useCallback(async ({ imagen, nota, rastro = null }) => {
     const numero = await local.siguienteNumero();
-    // la toma nace sin canal: se asigna en la mesa de edición
-    const toma = { ...crearToma({ id: local.nuevoId(), numero, creada: Date.now(), nota }), imagen };
+    // la toma nace sin canal (se asigna en la mesa de edición), salvo si viene de un rastro de la Antena:
+    // entonces trae el canal del vecino, la celda del rastro y el vecino
+    const toma = { ...crearToma({ id: local.nuevoId(), numero, creada: Date.now(), nota, canal: rastro?.canal ?? null, rastro }), imagen };
     await local.guardarToma(toma);
     const t = agregar(tira, toma.id);
     await local.guardarAjuste('tira', t);
@@ -278,8 +303,12 @@ export function useJuego() {
     }));
   }, [equipo, muro, tomas, canales]);
 
+  // sin mesa, o con una mesa que aún no tiene vecinos, la Antena sigue a los vecinos de prueba
+  const dePrueba = vecinosMesa.length === 0;
+  const vecinos = dePrueba ? VECINOS_DE_PRUEBA : vecinosMesa;
+
   return {
-    listo, equipo, inicio, canal, canales, tomas, tira, cola, muro: muroVisible, enLinea, aviso, setAviso,
+    listo, equipo, inicio, canal, canales, tomas, tira, cola, muro: muroVisible, enLinea, aviso, setAviso, vecinos, dePrueba,
     sintonizar, entrar, salir, unirse, salirDeMesa, guardarAbierto, registrar, editar, borrar, borrarVarias, asignar, moverEnTira,
     mandarAlAire, mandarVarias, cancelarEnvio, sacarDelAire
   };

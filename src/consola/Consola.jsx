@@ -6,6 +6,7 @@ import Confirmar from '../comun/Confirmar.jsx';
 import Cartas from './Cartas.jsx';
 import { TermicaSenal } from './impresora/Termica.jsx';
 import { exportarArchivo } from './archivo.js';
+import { ANDARES } from '../comun/dominio/andares.js';
 
 // cuando visor.ciudadesinposibles.net esté conectado en Hosting, puede ir aquí
 const VISOR = 'https://visor-ciudadesinposibles.web.app';
@@ -68,10 +69,82 @@ function DetalleSenal({ mesa, senal, alCerrar }) {
   );
 }
 
+/**
+ * Vecinos de la mesa: los que siguen los equipos con la Antena. El nombre lo dice la niña o el niño
+ * y se copia tal cual; el canal es la lente con que se registra su rastro; el andar, cómo se mueve.
+ * Su posición no se guarda: cada teléfono la calcula con el mismo reloj.
+ */
+function Vecinos({ mesa, vecinos, senales }) {
+  const vacio = { nombre: '', canal: 1, andar: 'suelo' };
+  const [nuevo, setNuevo] = useState(vacio);
+  const [editando, setEditando] = useState(null); // {id, nombre, canal, andar, creado}
+  const [error, setError] = useState('');
+  const conSenal = useMemo(() => {
+    const m = {};
+    for (const s of senales) if (s.vecino) m[s.vecino] = (m[s.vecino] || 0) + 1;
+    return m;
+  }, [senales]);
+  const orden = [...vecinos].sort((a, b) => (a.creado?.seconds || 0) - (b.creado?.seconds || 0));
+
+  // función y no componente: así los campos no se vuelven a montar (ni pierden el foco) al escribir
+  const campos = (v, set, id) => (
+    <>
+      <div className="campo"><label htmlFor={`vn-${id}`}>Nombre</label><input id={`vn-${id}`} value={v.nombre} maxLength={40} onChange={(e) => set({ ...v, nombre: e.target.value })} placeholder="la que canta temprano" required /></div>
+      <div className="fila-campo">
+        <div className="campo"><label htmlFor={`vc-${id}`}>Canal</label>
+          <select id={`vc-${id}`} value={v.canal} onChange={(e) => set({ ...v, canal: Number(e.target.value) })}>
+            {CANALES.map((c) => <option key={c.n} value={c.n}>{c.n} · {c.nombre}</option>)}
+          </select>
+        </div>
+        <div className="campo"><label htmlFor={`va-${id}`}>Andar</label>
+          <select id={`va-${id}`} value={v.andar} onChange={(e) => set({ ...v, andar: e.target.value })}>
+            {Object.entries(ANDARES).map(([k, a]) => <option key={k} value={k}>{a.nombre} ({a.ejemplo})</option>)}
+          </select>
+        </div>
+      </div>
+    </>
+  );
+
+  const intentar = async (f) => { setError(''); try { await f(); } catch (err) { setError(err.message); } };
+
+  return (
+    <div className="c-vecinos">
+      <h2 className="c-tit">Vecinos <span>{vecinos.length}</span></h2>
+      <p className="etq">Dejan rastros alrededor de la biblioteca. Los equipos los siguen con la Antena y registran el rastro con la lente del canal.</p>
+      <ul className="c-equipos">
+        {orden.map((v) => (
+          <li key={v.id}>
+            {editando?.id === v.id ? (
+              <form className="nueva" onSubmit={(e) => { e.preventDefault(); intentar(async () => { await red.cambiarVecino(mesa, v.id, editando, v.creado); setEditando(null); }); }}>
+                {campos(editando, setEditando, v.id)}
+                <div className="acciones"><button className="btn peq" type="submit">Guardar</button><button className="btn sec peq" type="button" onClick={() => setEditando(null)}>Cancelar</button></div>
+              </form>
+            ) : (
+              <>
+                <div><b><Pastilla n={v.canal} /> {v.nombre}</b><span className="etq">{ANDARES[v.andar]?.nombre || v.andar} · {conSenal[v.id] ? `con escaño · ${conSenal[v.id]} al aire` : 'sin rastro al aire'}</span></div>
+                <span className="acciones">
+                  <button className="enlace" onClick={() => setEditando({ ...v })}>Cambiar</button>
+                  <Confirmar texto="Quitar" pregunta="¿Quitar este vecino? Sus tomas siguen al aire." alConfirmar={() => red.quitarVecino(mesa, v.id)} />
+                </span>
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+      <form className="nueva" onSubmit={(e) => { e.preventDefault(); intentar(async () => { await red.crearVecino(mesa, nuevo); setNuevo(vacio); }); }}>
+        {campos(nuevo, setNuevo, 'nuevo')}
+        {error && <p className="aviso mal">{error}</p>}
+        <div className="acciones"><button className="btn sec peq" type="submit">Agregar vecino</button></div>
+      </form>
+    </div>
+  );
+}
+
 function Mesa({ mesa }) {
   const [equipos, setEquipos] = useState([]);
   const [pantallas, setPantallas] = useState([]);
   const [senales, setSenales] = useState([]);
+  const [vecinos, setVecinos] = useState([]);
   const [filtro, setFiltro] = useState('todas');
   const [abierta, setAbierta] = useState(null);
   const [nombre, setNombre] = useState(mesa.nombre || '');
@@ -85,7 +158,8 @@ function Mesa({ mesa }) {
     const p = [
       red.escucharEquipos(mesa.id, setEquipos),
       red.escucharPantallas(mesa.id, setPantallas),
-      red.escucharMuro(mesa.id, setSenales)
+      red.escucharMuro(mesa.id, setSenales),
+      red.escucharVecinos(mesa.id, setVecinos)
     ];
     return () => p.forEach((f) => f());
   }, [mesa.id]);
@@ -144,7 +218,10 @@ function Mesa({ mesa }) {
           </div>
         </form>
         <p className="datos">{equipos.length} equipos · {pantallas.length} pantallas · {resumen.total} al aire</p>
-        <a className="btn sec peq" href={VISOR} target="_blank" rel="noreferrer">Abrir el Visor</a>
+        <div className="acciones">
+          <a className="btn sec peq" href={VISOR} target="_blank" rel="noreferrer">Abrir el Visor</a>
+          <a className="btn sec peq" href={`${VISOR}/rastros`} target="_blank" rel="noreferrer">Mapa de rastros</a>
+        </div>
 
         <div className="c-archivo">
           <h2 className="c-tit">Archivo</h2>
@@ -178,6 +255,7 @@ function Mesa({ mesa }) {
             </li>
           ))}
         </ul>
+        <Vecinos mesa={mesa.id} vecinos={vecinos} senales={senales} />
       </section>
 
       <section className="c-col c-aire">

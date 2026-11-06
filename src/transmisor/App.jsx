@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useJuego } from './estado.js';
 import { enPantallaCompleta, pedirPantallaCompleta, salirDePantallaCompleta } from '../comun/local/pantalla.js';
 import Televisor from './aparatos/Televisor.jsx';
@@ -7,8 +7,12 @@ import MesaTransmision from './aparatos/MesaTransmision.jsx';
 import { CartaCanal, CartaToma, CartaSenal } from './aparatos/Cartas.jsx';
 import Entrada, { FormularioMesa } from './Entrada.jsx';
 
+// la Antena trae h3-js: se carga solo al abrirla
+const Antena = lazy(() => import('./aparatos/Antena.jsx'));
+
 const APARATOS = [
   { id: 'tv', nombre: 'Sintonizar', icono: <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="3" y="6" width="22" height="16" rx="4" fill="none" stroke="currentColor" strokeWidth="2.4" /><circle cx="21" cy="14" r="1.6" fill="currentColor" /></svg> },
+  { id: 'antena', nombre: 'Rastrear', icono: <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M14 15 7 4M14 15l7-11" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /><rect x="5" y="15" width="18" height="9" rx="3" fill="currentColor" /></svg> },
   { id: 'camara', nombre: 'Registrar', icono: <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="3" y="8" width="22" height="15" rx="3" fill="none" stroke="currentColor" strokeWidth="2.4" /><circle cx="14" cy="15.5" r="4" fill="none" stroke="currentColor" strokeWidth="2.4" /><rect x="9" y="4.5" width="10" height="4" rx="1" fill="currentColor" /></svg> },
   { id: 'mesa', nombre: 'Transmitir', icono: <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="2.5" y="6" width="10" height="8" rx="2" fill="none" stroke="currentColor" strokeWidth="2.2" /><rect x="15.5" y="6" width="10" height="8" rx="2" fill="currentColor" /><path d="M3 20h22" stroke="currentColor" strokeWidth="2.4" strokeDasharray="4 2.5" /></svg> }
 ];
@@ -17,6 +21,7 @@ export default function App() {
   const j = useJuego();
   const [aparato, setAparato] = useState('tv');
   const [carta, setCarta] = useState(null); // {tipo, ...}
+  const [rastro, setRastro] = useState(null); // {canal, celda, vecino}: la próxima toma nace de este rastro
 
   useEffect(() => {
     if (!j.aviso) return;
@@ -80,10 +85,23 @@ export default function App() {
             alAbrirSenal={(s) => setCarta(s.pendiente || s.prueba ? { tipo: 'toma', id: s.id } : { tipo: 'senal', senal: s })}
           />
         )}
+        {aparato === 'antena' && (
+          <Suspense fallback={null}>
+            <Antena
+              vecinos={j.vecinos} dePrueba={j.dePrueba} canales={j.canales} pausa={!!carta}
+              alRegistrar={(r) => { setRastro(r); setAparato('camara'); }}
+            />
+          </Suspense>
+        )}
         {aparato === 'camara' && (
           <Camara
             totalTomas={ultimaToma?.numero || 0} ultima={ultimaToma} alAbrirToma={(t) => setCarta({ tipo: 'toma', id: t.id })}
-            alRegistrar={async (datos) => { await j.registrar(datos); j.setAviso({ texto: 'Toma guardada. En la mesa le asignan un canal.' }); }}
+            rastro={rastro && j.canales[rastro.canal - 1]} alSoltarRastro={() => setRastro(null)}
+            alRegistrar={async (datos) => {
+              await j.registrar({ ...datos, rastro });
+              j.setAviso({ texto: rastro ? `Toma guardada en el canal ${rastro.canal}. En la mesa la mandan al aire.` : 'Toma guardada. En la mesa le asignan un canal.' });
+              setRastro(null);
+            }}
           />
         )}
         {aparato === 'mesa' && (

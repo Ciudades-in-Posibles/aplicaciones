@@ -23,18 +23,18 @@ async function enParalelo(lista, hacer) {
   return salida;
 }
 
-/** Lista lo que hay hoy en la mesa: ids de señales con sus respuestas, equipos, nombres y pantallas. */
+/** Lista lo que hay hoy en la mesa: ids de señales con sus respuestas, equipos, nombres, pantallas y vecinos. */
 export async function listarContenido(db, mesa) {
   const ids = async (...ruta) => (await getDocs(collection(db, ...ruta))).docs.map((d) => d.id);
-  const [senalesIds, equipos, nombres, pantallas] = await Promise.all([
-    ids('mesas', mesa, 'senales'), ids('mesas', mesa, 'equipos'), ids('mesas', mesa, 'nombres'), ids('mesas', mesa, 'pantallas')
+  const [senalesIds, equipos, nombres, pantallas, vecinos] = await Promise.all([
+    ids('mesas', mesa, 'senales'), ids('mesas', mesa, 'equipos'), ids('mesas', mesa, 'nombres'), ids('mesas', mesa, 'pantallas'), ids('mesas', mesa, 'vecinos')
   ]);
   const respuestas = await enParalelo(senalesIds, (s) => ids('mesas', mesa, 'senales', s, 'respuestas'));
-  return { senales: senalesIds.map((id, i) => ({ id, respuestas: respuestas[i] })), equipos, nombres, pantallas };
+  return { senales: senalesIds.map((id, i) => ({ id, respuestas: respuestas[i] })), equipos, nombres, pantallas, vecinos };
 }
 
 /**
- * Borra la mesa y todo lo que cuelga de ella: respuestas, señales, equipos, nombres, pantallas y la mesa.
+ * Borra la mesa y todo lo que cuelga de ella: respuestas, señales, equipos, nombres, pantallas, vecinos y la mesa.
  * @param {import('firebase/firestore').Firestore} db
  * @param {string} mesa
  * @param {(avance: {etapa: string, hechos: number, total: number, texto: string}) => void} [alAvanzar]

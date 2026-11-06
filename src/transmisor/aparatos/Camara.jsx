@@ -12,7 +12,7 @@ function ahora() {
  * Usa la cámara en vivo; si no hay permiso, ofrece abrir la cámara del teléfono.
  * Lo que se vio se escribe, y es opcional.
  */
-export default function Camara({ totalTomas, ultima, alAbrirToma, alRegistrar }) {
+export default function Camara({ totalTomas, ultima, alAbrirToma, alRegistrar, rastro = null, alSoltarRastro = () => {} }) {
   const video = useRef(null);
   const archivo = useRef(null);
   const [flujo, setFlujo] = useState(null);
@@ -77,6 +77,7 @@ export default function Camara({ totalTomas, ultima, alAbrirToma, alRegistrar })
             {!foto && <div className="tercios" aria-hidden="true"><i /><i /><i /><i /></div>}
             <b className="a" /><b className="b" /><b className="c" /><b className="d" />
             <span className="rec">{foto ? 'Registrada' : 'Encuadrando'}</span>
+            {rastro && <span className="rastro-cam" style={{ background: `var(--c${rastro.n})` }}>Rastro · {rastro.n}</span>}
             <div className="bar"><span>4:3 · B/N</span><span>{ahora()}</span><span>{codigoToma(totalTomas + 1)}</span></div>
             <div className={`destello ${destello ? 'on' : ''}`} />
           </div>
@@ -95,7 +96,12 @@ export default function Camara({ totalTomas, ultima, alAbrirToma, alRegistrar })
       <div className="lateral">
       {!foto && (
         <>
-          <p className="aviso">Encuadren y disparen. El canal lo asignan después en la mesa.</p>
+          {rastro ? (
+            <>
+              <p className="lente-lat">{rastro.lente}</p>
+              <p className="etq">La toma va al canal {rastro.n} · {rastro.nombre} <button className="enlace" onClick={alSoltarRastro}>Sin rastro</button></p>
+            </>
+          ) : <p className="aviso">Encuadren y disparen. El canal lo asignan después en la mesa.</p>}
           <div className="acciones">
             <button className="btn sec peq" onClick={() => archivo.current?.click()}>Abrir la cámara del teléfono</button>
             <input ref={archivo} className="sr" type="file" accept="image/*" capture="environment" onChange={desdeArchivo} />

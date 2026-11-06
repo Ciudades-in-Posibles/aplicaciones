@@ -5,13 +5,15 @@
 
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import {
-  collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, writeBatch
+  addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, writeBatch
 } from 'firebase/firestore';
 import { auth, db } from '../../comun/red/firebase.js';
 import { normalizarCodigo, codigoValido, MAX_NOMBRE_MESA } from '../../comun/dominio/mesa.js';
 import { borrarMesaEn } from './borrar.js';
 
-export { escucharMuro } from '../../comun/red/muro.js';
+import { datosDeVecino } from '../../comun/dominio/andares.js';
+
+export { escucharMuro, escucharVecinos } from '../../comun/red/muro.js';
 
 export function escucharSesion(alCambiar) {
   return onAuthStateChanged(auth, alCambiar);
@@ -93,4 +95,19 @@ export async function leerRespuestas(mesa, senal) {
 /** Borra la mesa con todo lo que cuelga de ella, en lotes. Se puede repetir si se corta. */
 export function borrarMesa(mesa, alAvanzar) {
   return borrarMesaEn(db, mesa, alAvanzar);
+}
+
+// ---- vecinos de la mesa (Antena y /rastros) ----
+
+export function crearVecino(mesa, datos) {
+  return addDoc(collection(db, 'mesas', mesa, 'vecinos'), { ...datosDeVecino(datos), creado: serverTimestamp() });
+}
+
+/** Cambiar el andar o el canal de un vecino lo mueve a otro recorrido desde ese momento. */
+export function cambiarVecino(mesa, id, datos, creado) {
+  return setDoc(doc(db, 'mesas', mesa, 'vecinos', id), { ...datosDeVecino(datos), creado: creado || serverTimestamp() });
+}
+
+export function quitarVecino(mesa, id) {
+  return deleteDoc(doc(db, 'mesas', mesa, 'vecinos', id));
 }

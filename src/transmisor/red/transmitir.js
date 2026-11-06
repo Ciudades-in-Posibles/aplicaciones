@@ -30,7 +30,12 @@ async function enviarSenal(elemento, contexto) {
   const abierto = canal.abierto ? { nombre: canal.nombre, lente: canal.lente } : undefined;
   const res = await transmitirServidor({
     mesa: contexto.mesa,
-    toma: { id: toma.id, canal: toma.canal, codigo: toma.codigo, nota: toma.nota, imagen: toma.imagen, creada: toma.creada, ...(abierto && { abierto }) }
+    toma: {
+      id: toma.id, canal: toma.canal, codigo: toma.codigo, nota: toma.nota, imagen: toma.imagen, creada: toma.creada,
+      ...(abierto && { abierto }),
+      // la celda es la del rastro del vecino, no la ubicación del equipo
+      ...(toma.celda && toma.vecino && { celda: toma.celda, vecino: toma.vecino })
+    }
   });
   if (res.data?.estado === 'rechazada') {
     await local.guardarToma(rechazar(toma, res.data.motivo || 'Esta toma no sale al aire. Probemos con otra.'));

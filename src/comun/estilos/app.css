@@ -616,3 +616,88 @@ button { cursor: pointer; }
 .confirmar { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; font: 500 .8125rem/1.2 var(--f); }
 .btn.mal { background: var(--rojo); color: var(--calle); }
 @media (max-width: 900px) { .c-mesa { grid-template-columns: 1fr; } }
+
+/* Consola · vecinos de la mesa */
+.campo select { width: 100%; background: var(--calle); border: 2px solid var(--filete); border-radius: 10px; padding: 10px; color: var(--crema); font: 400 .9375rem/1.3 var(--f); }
+.campo select:focus { border-color: var(--crema); outline: 0; }
+.c-vecinos { display: grid; gap: 10px; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--filete); }
+.c-vecinos .fila-campo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.c-vecinos .c-equipos { max-height: none; }
+.c-vecinos .c-equipos li { flex-wrap: wrap; }
+.c-vecinos .c-equipos li form { width: 100%; }
+.c-vecinos b .k { position: static; display: inline-grid; place-items: center; width: 18px; height: 18px; font: 900 .7rem/1 var(--f); color: var(--calle); border-radius: 5px 3px 6px 3px; vertical-align: -3px; }
+.c-vecinos .acciones { display: flex; gap: 10px; align-items: center; }
+
+/* ---------- antena (seguir los rastros de los vecinos) ---------- */
+.antb {
+  /* lima, como la base de la antena de orejas de /el-juego/ */
+  background: var(--lima); color: var(--calle); border-radius: var(--celula-4); padding: 3.4cqw;
+  display: grid; grid-template-columns: 1fr 12cqw; gap: 2.4cqw; align-items: stretch;
+}
+.antena-tubo { cursor: default; }
+.antena-tubo video { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.1); display: block; border-radius: 8% / 11%; }
+.antena-tubo .vacio { position: absolute; inset: 0; display: grid; place-items: center; color: var(--crema); font: 500 3.2cqw/1.4 var(--mono); }
+.antena-tubo .ruido.sin-senal { animation: nieve .4s steps(4) infinite; transition: opacity .8s ease; z-index: 1; }
+.radar { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.radar polygon { fill: var(--superficie); stroke: var(--calle); stroke-width: 3; cursor: pointer; }
+.radar polygon.agua { fill: #2a4f66; }
+.radar polygon.cruce { fill: #1c1c1f; }
+.radar polygon.bib { fill: var(--filete); }
+.radar polygon.aqui { fill: var(--crema); }
+.radar .equipo { fill: var(--calle); stroke: var(--crema); stroke-width: 3; }
+.radar .punto { fill: var(--calle); }
+.radar .flecha path { fill: var(--crema); stroke: var(--calle); stroke-width: 4; stroke-linejoin: round; }
+.radar .norte { fill: var(--crema); font: 700 22px/1 var(--mono); }
+.recorte {
+  /* recorte plano de cartulina, sin sombras ni texturas */
+  position: absolute; left: 50%; top: 52%; z-index: 2; width: 30cqw; aspect-ratio: 1; transform: translate(-50%, -50%) rotate(-6deg);
+  background: var(--c); border: 1.2cqw solid var(--calle); border-radius: var(--celula-3);
+  display: grid; place-items: center; transition: left .3s ease;
+}
+.recorte .num { font: 900 13cqw/1 var(--f); color: var(--calle); }
+.borde-flecha { position: absolute; top: 45%; z-index: 2; font: 900 10cqw/1 var(--f); color: var(--crema); text-shadow: 0 0 1cqw var(--calle); }
+.borde-flecha.izq { left: 4cqw; }
+.borde-flecha.der { right: 4cqw; }
+.ants { display: flex; flex-direction: column; gap: 3cqw; align-items: center; justify-content: space-between; }
+.barras { display: flex; align-items: flex-end; gap: 1cqw; width: 100%; height: 16cqw; }
+.barras i { flex: 1; background: transparent; box-shadow: inset 0 0 0 .5cqw var(--calle); border-radius: .6cqw; }
+.barras i.on { background: var(--calle); }
+.btn-a {
+  width: 100%; aspect-ratio: 1; border: 0; border-radius: 30%; background: var(--calle); color: var(--lima);
+  display: grid; place-items: center; padding: 0; cursor: pointer;
+}
+.btn-a svg { width: 60%; height: 60%; }
+.btn-a.on { background: var(--crema); color: var(--calle); box-shadow: inset 0 0 0 .5cqw var(--calle); }
+.btn-a:disabled { cursor: default; }
+@media (prefers-reduced-motion: reduce) { .antena-tubo .ruido.sin-senal { animation: none; } .recorte { transition: none; } }
+.vf .rastro-cam {
+  position: absolute; right: 12cqw; top: 4.2cqw; z-index: 1; font: 700 2.6cqw/1 var(--mono); letter-spacing: .04em;
+  color: var(--calle); padding: .8cqw 1.6cqw; border-radius: .8cqw; text-transform: uppercase;
+}
+
+/* ---------- Visor · mapa de rastros (/rastros) ---------- */
+.al-aire.con-rastros { grid-template-columns: 1fr; }
+.rastros { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 22vw); gap: 1.6vw; min-height: 0; align-items: center; }
+.mapa-r { width: 100%; height: calc(100dvh - 7vw); display: block; }
+.mapa-r polygon { fill: var(--superficie); stroke: var(--fondo); stroke-width: 3; }
+.mapa-r polygon.agua { fill: #2a4f66; }
+.mapa-r polygon.cruce { fill: #1c1c1f; }
+.mapa-r polygon.arb { fill: #3d4436; }
+.mapa-r polygon.orilla { fill: #2f3b40; }
+.mapa-r polygon.bib { fill: var(--crema); }
+.mapa-r .bib-t { fill: var(--crema); font: 700 18px/1 var(--mono); text-anchor: middle; letter-spacing: .06em; text-transform: uppercase; paint-order: stroke; stroke: var(--fondo); stroke-width: 6px; stroke-linejoin: round; }
+.mapa-r .sendero { fill: none; stroke: var(--c); stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 2 10; opacity: .9; }
+.mapa-r .rastro { fill: var(--c); stroke: var(--calle); stroke-width: 2.5; transition: cx 1s ease, cy 1s ease; }
+.mapa-r .num-r { fill: var(--calle); font: 900 15px/1 var(--f); text-anchor: middle; pointer-events: none; }
+.mapa-r .foto-r image { filter: grayscale(1); }
+.mapa-r .foto-r polygon { fill: none; stroke-width: 4; }
+.leyenda-r { display: grid; gap: 1vw; align-content: start; }
+.leyenda-r h2 { margin: 0; font: 800 2vw/1 var(--f); }
+.leyenda-r p { margin: 0; font: 400 1.1vw/1.4 var(--f); color: var(--tinta-2); }
+.leyenda-r ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .8vw; }
+.leyenda-r li { display: flex; gap: .8vw; align-items: center; }
+.leyenda-r .k { flex: 0 0 auto; display: grid; place-items: center; width: 2.4vw; height: 2.4vw; font: 900 1.3vw/1 var(--f); color: var(--calle); border-radius: .6vw .3vw .7vw .3vw; }
+.leyenda-r b { display: block; font: 700 1.2vw/1.2 var(--f); }
+.leyenda-r small { display: block; font: 500 .85vw/1.3 var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--tinta-2); }
+.leyenda-r .pie-r { font: 500 .9vw/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+@media (max-width: 800px) { .rastros { grid-template-columns: 1fr; } .mapa-r { height: 70dvh; } }

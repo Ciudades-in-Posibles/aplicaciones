@@ -12,16 +12,17 @@ export const ETAPAS = [
   { id: 'equipos', texto: 'equipos' },
   { id: 'nombres', texto: 'nombres' },
   { id: 'pantallas', texto: 'pantallas' },
+  { id: 'vecinos', texto: 'vecinos' },
   { id: 'mesa', texto: 'la mesa' }
 ];
 
 /**
  * @param {string} mesa código de la mesa
- * @param {{senales: {id: string, respuestas: string[]}[], equipos: string[], nombres: string[], pantallas: string[]}} contenido
+ * @param {{senales: {id: string, respuestas: string[]}[], equipos: string[], nombres: string[], pantallas: string[], vecinos: string[]}} contenido
  *   los ids que hay hoy en cada colección
- * @returns {{id: string, texto: string, rutas: string[][]}[]} las seis etapas en orden; cada ruta es el camino de un documento
+ * @returns {{id: string, texto: string, rutas: string[][]}[]} las siete etapas en orden; cada ruta es el camino de un documento
  */
-export function planDeBorrado(mesa, { senales = [], equipos = [], nombres = [], pantallas = [] }) {
+export function planDeBorrado(mesa, { senales = [], equipos = [], nombres = [], pantallas = [], vecinos = [] }) {
   const base = ['mesas', mesa];
   const rutas = {
     respuestas: senales.flatMap((s) => s.respuestas.map((r) => [...base, 'senales', s.id, 'respuestas', r])),
@@ -29,6 +30,7 @@ export function planDeBorrado(mesa, { senales = [], equipos = [], nombres = [], 
     equipos: equipos.map((id) => [...base, 'equipos', id]),
     nombres: nombres.map((id) => [...base, 'nombres', id]),
     pantallas: pantallas.map((id) => [...base, 'pantallas', id]),
+    vecinos: vecinos.map((id) => [...base, 'vecinos', id]),
     mesa: [base]
   };
   return ETAPAS.map((e) => ({ ...e, rutas: rutas[e.id] }));

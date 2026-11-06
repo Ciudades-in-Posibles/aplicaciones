@@ -39,12 +39,14 @@ export function codigoToma(numero) {
 
 /**
  * La toma nace sin canal (canal: null); se le asigna en la mesa de edición.
- * @param {{id: string, numero: number, canal?: number|null, creada: number, nota?: string}} datos
+ * Si nace de un rastro (Antena), trae el canal del vecino, la celda H3 del rastro y el id del vecino.
+ * @param {{id: string, numero: number, canal?: number|null, creada: number, nota?: string, rastro?: {celda: string, vecino: string}|null}} datos
  */
-export function crearToma({ id, numero, canal = null, creada, nota }) {
+export function crearToma({ id, numero, canal = null, creada, nota, rastro = null }) {
   if (!id) throw new Error('La toma necesita un id.');
   if (canal != null && !canalValido(canal)) throw new Error('Canal fuera del dial.');
   return {
+    ...(rastro?.celda && rastro?.vecino && { celda: rastro.celda, vecino: rastro.vecino }),
     id,
     numero,
     codigo: codigoToma(numero),
@@ -122,6 +124,7 @@ export function senalDePrueba(toma, canal) {
     id: toma.id, prueba: true, equipo: 'Prueba · este teléfono', canal: toma.canal,
     canalNombre: canal?.nombre || '', lente: canal?.lente || '', codigo: toma.codigo,
     nota: toma.nota, pregunta: '', descripcion: '', imagen: toma.imagen,
-    creada: toma.enviada || toma.creada
+    creada: toma.enviada || toma.creada,
+    ...(toma.celda && { celda: toma.celda, vecino: toma.vecino })
   };
 }
