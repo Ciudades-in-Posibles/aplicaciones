@@ -6,6 +6,7 @@ import { MAPA_BASE } from './mapaBase.js';
 import { CANALES } from '../comun/dominio/canales.js';
 
 const TIC_MS = 15000;
+const SIN_VECINOS = [];
 const CUADRO_MS = 100; // en el repaso el reloj avanza 10 veces por segundo
 const VELOCIDADES = [60, 300]; // ×60: el día en 24 min · ×300: en unos 5 min
 const SALTO_MS = 10 * 60 * 1000; // ← y → mueven el reloj 10 minutos
@@ -175,9 +176,11 @@ function Reloj({ reloj }) {
  * cada una en su celda. Un vecino con al menos una toma al aire tiene escaño.
  */
 export default function Rastros({ vecinos: vecinosMesa, senales }) {
-  // una mesa sin vecinos muestra los de prueba, como la Antena
-  const dePrueba = vecinosMesa.length === 0;
-  const vecinos = dePrueba ? VECINOS_DE_PRUEBA : vecinosMesa;
+  // una mesa sin vecinos muestra los de prueba, como la Antena; mientras llegan los de la mesa
+  // (vecinosMesa === null), ninguno, para que los de prueba no aparezcan un instante
+  const cargando = vecinosMesa == null;
+  const dePrueba = !cargando && vecinosMesa.length === 0;
+  const vecinos = cargando ? SIN_VECINOS : dePrueba ? VECINOS_DE_PRUEBA : vecinosMesa;
   const reloj = useReloj();
   const { t } = reloj;
   const [seguido, setSeguido] = useState(null);

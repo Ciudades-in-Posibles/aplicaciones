@@ -149,7 +149,7 @@ export default function AlAire({ mosaico = false, rastros = false, raiz = '' }) 
   const [error, setError] = useState('');
   const [senales, setSenales] = useState([]);
   const [abierta, setAbierta] = useState(true);
-  const [vecinos, setVecinos] = useState([]);
+  const [vecinos, setVecinos] = useState(null); // null mientras llegan los de la mesa
   const quieto = usePantalla(!!mesa);
   useEffect(() => { document.title = 'Visor · Ciudades(In)Posibles'; }, []);
 
@@ -157,6 +157,7 @@ export default function AlAire({ mosaico = false, rastros = false, raiz = '' }) 
     if (!mesa) return;
     let parar = () => {};
     let vivo = true;
+    setVecinos(null);
     unirPantalla(mesa).then(() => {
       if (!vivo) return;
       const pararMuro = escucharMuro(mesa, (x) => { setSenales(x); setError(''); }, (err) => setError(motivo(err)));
