@@ -3,7 +3,8 @@
 .tm-luz { width: 10px; height: 10px; border-radius: 50%; background: var(--filete); box-shadow: 0 0 0 2px currentColor; }
 .tm-luz.on { background: var(--lima, #9bd35a); }
 .tm-estado { font: 500 .8125rem/1.3 var(--mono); letter-spacing: .04em; }
-.tm-conc { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+.tm-ajustes { display: inline-flex; flex-wrap: wrap; gap: 8px 12px; margin-left: auto; }
+.tm-conc { display: inline-flex; align-items: center; gap: 6px; }
 .tm-conc select { font: 500 .8125rem/1 var(--mono); padding: 4px 6px; border-radius: 6px; }
 .tm-aviso { margin: 0; flex-basis: 100%; font: 500 .8125rem/1.4 var(--f); }
 

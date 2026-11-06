@@ -1,7 +1,10 @@
 /**
- * Carta de una señal para la PeriPage A6: 384 × 704 puntos (48 × 88 mm), en blanco y negro.
- * Ficha del canal con su número y nombre, dial 1–9, la toma 4:3 a todo el ancho, el texto de la carta,
- * el equipo, el código y la fecha. Debajo va una franja con marcas de corte para el papel adhesivo.
+ * Impresiones de una señal para la PeriPage A6 (384 puntos de ancho, 48 mm), en blanco y negro.
+ * - carta: 48 × 88 mm. Ficha del canal con su número y nombre, dial 1–9, la toma 4:3 a todo el ancho,
+ *   el texto de la carta, el equipo, el código y la fecha.
+ * - imagen: solo la toma, horizontal (48 × 36 mm).
+ * - imagenGirada: solo la toma girada a lo largo del papel (48 × 64 mm).
+ * Debajo de cada una va una franja con marcas de corte para el papel adhesivo.
  */
 import { ANCHO_TERMICA, BYTES_POR_FILA, PUNTOS_POR_MM, difuminar, bytesPeriPage, partirLineas } from '../../comun/dominio/termica.js';
 import { textoDeCarta, fechaCorta } from '../../comun/dominio/archivo.js';
@@ -63,16 +66,68 @@ function estirarNiveles(gris, desde, hasta) {
   }
 }
 
+export const FORMATOS = [
+  ['carta', 'Carta'],
+  ['imagen', 'Solo imagen'],
+  ['imagenGirada', 'Imagen girada']
+];
+
+/** Marcas de corte a los dos lados, a media altura de la franja que empieza en `y`. */
+function marcasDeCorte(ctx, y) {
+  const yc = y + ALTO_CORTE / 2;
+  ctx.fillRect(0, yc - 1, 28, 3);
+  ctx.fillRect(W - 28, yc - 1, 28, 3);
+}
+
+/** Grises (0 = negro) del lienzo, fila tras fila. */
+function grisesDe(ctx, alto) {
+  const datos = ctx.getImageData(0, 0, W, alto).data;
+  const gris = new Uint8Array(W * alto);
+  for (let i = 0, j = 0; i < gris.length; i++, j += 4) {
+    gris[i] = Math.round(0.299 * datos[j] + 0.587 * datos[j + 1] + 0.114 * datos[j + 2]);
+  }
+  return gris;
+}
+
+function nuevoLienzo(alto) {
+  const lienzo = document.createElement('canvas');
+  lienzo.width = W; lienzo.height = alto;
+  const ctx = lienzo.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, alto);
+  ctx.fillStyle = '#000'; ctx.strokeStyle = '#000';
+  return ctx;
+}
+
+/** Solo la toma: horizontal (384 × 288) o girada a lo largo (384 × 512). */
+export async function dibujarImagen(senal, { girada = false } = {}) {
+  const im = await cargarImagen(senal.imagen).catch(() => null);
+  if (!im) throw new Error('sin-imagen');
+  const ph = girada ? (W * 4) / 3 : (W * 3) / 4;
+  const alto = ph + ALTO_CORTE;
+  const ctx = nuevoLienzo(alto);
+  if (girada) {
+    // la toma 4:3 gira -90°: su lado largo queda a lo largo del papel
+    ctx.save();
+    ctx.translate(0, ph);
+    ctx.rotate(-Math.PI / 2);
+    dibujarFoto(ctx, im, 0, 0, ph, W);
+    ctx.restore();
+  } else {
+    dibujarFoto(ctx, im, 0, 0, W, ph);
+  }
+  marcasDeCorte(ctx, ph);
+  const gris = grisesDe(ctx, alto);
+  estirarNiveles(gris, 0, ph * W);
+  return { gris, alto };
+}
+
 /** Dibuja la carta y devuelve sus grises (0 = negro), fila tras fila. */
 export async function dibujarCarta(senal) {
   await fuentes();
   const n = canalValido(senal.canal) ? senal.canal : 0;
   const nombreCanal = senal.canalNombre || CANALES.find((c) => c.n === n)?.nombre || 'Sin canal';
-  const lienzo = document.createElement('canvas');
-  lienzo.width = W; lienzo.height = ALTO;
-  const ctx = lienzo.getContext('2d');
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, ALTO);
-  ctx.fillStyle = '#000'; ctx.strokeStyle = '#000'; ctx.textBaseline = 'alphabetic';
+  const ctx = nuevoLienzo(ALTO);
+  ctx.textBaseline = 'alphabetic';
 
   // Ficha del canal: número grande y nombre, con filete
   const fy = 14, fh = 92;
@@ -119,16 +174,9 @@ export async function dibujarCarta(senal) {
   let yp = ALTO_CARTA - 14 - 26 * (pie.length - 1);
   for (const p of pie) { ctx.fillText(partirLineas(p, W - 2 * M, medirMono, 1)[0] || '', M, yp); yp += 26; }
 
-  // Marcas de corte en el borde de la carta, a los dos lados
-  const yc = ALTO_CARTA + ALTO_CORTE / 2;
-  ctx.fillRect(0, yc - 1, 28, 3);
-  ctx.fillRect(W - 28, yc - 1, 28, 3);
+  marcasDeCorte(ctx, ALTO_CARTA);
 
-  const datos = ctx.getImageData(0, 0, W, ALTO).data;
-  const gris = new Uint8Array(W * ALTO);
-  for (let i = 0, j = 0; i < gris.length; i++, j += 4) {
-    gris[i] = Math.round(0.299 * datos[j] + 0.587 * datos[j + 1] + 0.114 * datos[j + 2]);
-  }
+  const gris = grisesDe(ctx, ALTO);
   if (im) estirarNiveles(gris, py * W, (py + ph) * W);
   return { gris, alto: ALTO };
 }
@@ -151,9 +199,11 @@ function bitsAPng(bits, alto) {
   return lienzo.toDataURL('image/png');
 }
 
-/** Todo lo de una carta: la vista previa en 1 bit y los bytes para la impresora. */
-export async function prepararCarta(senal, { concentracion = 1 } = {}) {
-  const { gris, alto } = await dibujarCarta(senal);
+/** Todo lo de una impresión: la vista previa en 1 bit y los bytes para la impresora. */
+export async function prepararCarta(senal, { concentracion = 1, formato = 'carta' } = {}) {
+  const { gris, alto } = formato === 'carta'
+    ? await dibujarCarta(senal)
+    : await dibujarImagen(senal, { girada: formato === 'imagenGirada' });
   const bits = difuminar(gris, W, alto);
   return { vista: bitsAPng(bits, alto), bytes: bytesPeriPage(bits, alto, { concentracion }) };
 }
