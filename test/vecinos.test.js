@@ -4,8 +4,10 @@ import { gridDistance, gridDisk, cellToLatLng } from 'h3-js';
 import { ZONA, CELDAS, CELDA_BIBLIOTECA, enZona, etiquetas } from '../src/comun/dominio/zona.js';
 import {
   ANDARES, celdaDelVecino, rastrosDelVecino, rastroMasCercano, intensidad, relojDelJuego, casaDe, habitatDe, rumbo,
-  RASTROS_POR_VECINO, DISTANCIA_ENCUENTRO, ALCANCE_SENAL
+  RASTROS_POR_VECINO, DISTANCIA_ENCUENTRO, ALCANCE_SENAL, CELDAS_DE_VECINOS, VECINOS_DE_PRUEBA,
+  RADIO_CASA, recorridoDelDia, inicioDelDia
 } from '../src/comun/dominio/vecinos.js';
+import { RE_VECINO } from '../functions/src/entrada.js';
 
 // 6 nov 2026, en hora de Bogotá (UTC−5)
 const hora = (h, m = 0) => Date.UTC(2026, 10, 6, h + 5, m);
@@ -85,12 +87,78 @@ test('el andar de noche descansa de día y se mueve después de las 17:30', () =
   assert.ok(celdas.size > 1, 'de noche debería moverse');
 });
 
-test('el andar por el agua solo pisa agua u orilla', () => {
+test('el andar por el agua sigue la ribera sur: a 3 celdas o menos del agua, sin pisarla', () => {
+  const agua = CELDAS.filter((c) => etiquetas(c).includes('agua'));
   const v = vecinos.find((x) => x.andar === 'rio');
   for (let m = 0; m < 12 * 60; m += 10) {
-    const et = etiquetas(celdaDelVecino(v, hora(6) + m * 60000));
-    assert.ok(et.includes('agua') || et.includes('orilla'), et.join(' '));
+    const c = celdaDelVecino(v, hora(6) + m * 60000);
+    assert.ok(!etiquetas(c).includes('agua'), c);
+    assert.ok(agua.some((a) => gridDistance(a, c) <= ANDARES.rio.ribera), `${c} lejos del agua`);
   }
+});
+
+test('límite: los vecinos viven al sur del Arzobispo (281 celdas), sin agua y con la biblioteca', () => {
+  assert.equal(CELDAS_DE_VECINOS.size, 281); // cambia si se regenera la zona: revisar
+  assert.ok(CELDAS_DE_VECINOS.has(CELDA_BIBLIOTECA));
+  for (const c of CELDAS_DE_VECINOS) assert.ok(enZona(c) && !etiquetas(c).includes('agua'), c);
+  // las celdas al sur quedan al sur de las de agua en su misma longitud
+  const latAgua = Math.min(...CELDAS.filter((c) => etiquetas(c).includes('agua')).map((c) => cellToLatLng(c)[0]));
+  const norte = CELDAS.filter((c) => !CELDAS_DE_VECINOS.has(c) && !etiquetas(c).includes('agua'));
+  assert.ok(norte.length > 0 && norte.every((c) => cellToLatLng(c)[0] > latAgua - 0.0002), 'una celda excluida queda al sur del río');
+  for (const andar of Object.keys(ANDARES)) {
+    for (const c of habitatDe(andar)) assert.ok(CELDAS_DE_VECINOS.has(c), `${andar}: ${c} pasa del borde sur`);
+  }
+});
+
+test('vecinos de prueba: nueve, uno por canal, con ids válidos, y nunca cruzan el río en todo el día', () => {
+  assert.equal(VECINOS_DE_PRUEBA.length, 9);
+  assert.deepEqual(VECINOS_DE_PRUEBA.map((v) => v.canal).sort((a, b) => a - b), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  assert.equal(new Set(VECINOS_DE_PRUEBA.map((v) => v.id)).size, 9);
+  for (const v of VECINOS_DE_PRUEBA) {
+    assert.ok(RE_VECINO.test(v.id), v.id);
+    assert.ok(ANDARES[v.andar], v.andar);
+    for (let m = 0; m < 24 * 60; m += 5) {
+      const t = hora(6) + m * 60000;
+      assert.ok(CELDAS_DE_VECINOS.has(celdaDelVecino(v, t)), `${v.id} cruzó el río`);
+      for (const r of rastrosDelVecino(v, t)) assert.ok(CELDAS_DE_VECINOS.has(r.celda));
+    }
+  }
+});
+
+test('casas: los de tierra a RADIO_CASA o menos de la biblioteca; los del agua en la ribera más cercana', () => {
+  for (const v of [...vecinos, ...VECINOS_DE_PRUEBA]) {
+    const casa = casaDe(v);
+    const d = gridDistance(CELDA_BIBLIOTECA, casa);
+    assert.ok(habitatDe(v.andar).includes(casa), v.id);
+    if (v.andar === 'rio') {
+      const dmin = Math.min(...habitatDe('rio').map((c) => gridDistance(CELDA_BIBLIOTECA, c)));
+      assert.ok(d <= dmin + 2, `${v.id} a ${d}`);
+    } else {
+      assert.ok(d <= RADIO_CASA, `${v.id} a ${d}`);
+    }
+  }
+});
+
+test('recorridoDelDia: de la casa a donde está, sin celdas seguidas repetidas y con saltos de su andar', () => {
+  for (const v of VECINOS_DE_PRUEBA) {
+    for (const t of [hora(6), hora(9, 40), hora(18, 15), hora(23, 59)]) {
+      const r = recorridoDelDia(v, t);
+      assert.equal(r[0], casaDe(v), v.id);
+      assert.equal(r[r.length - 1], celdaDelVecino(v, t), v.id);
+      for (let i = 1; i < r.length; i++) {
+        assert.notEqual(r[i], r[i - 1]);
+        assert.ok(gridDistance(r[i - 1], r[i]) <= ANDARES[v.andar].salto, v.id);
+      }
+    }
+  }
+});
+
+test('inicioDelDia: las 6:00 de Bogotá, también justo antes y después del cambio de día', () => {
+  assert.equal(inicioDelDia(hora(6)), hora(6));
+  assert.equal(inicioDelDia(hora(14, 30)), hora(6));
+  assert.equal(inicioDelDia(hora(6) - 1), hora(6) - 24 * 3600 * 1000);
+  assert.equal(inicioDelDia(hora(6) + 1), hora(6));
+  assert.equal(inicioDelDia(hora(29, 59)), hora(6)); // 5:59 del 7 nov sigue en el día del 6
 });
 
 test('rastros: distintos, del más fresco al más viejo, y se desvanecen', () => {

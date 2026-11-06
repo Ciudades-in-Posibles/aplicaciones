@@ -12,7 +12,7 @@
  */
 
 import { gridDisk, gridDistance, cellToLatLng } from 'h3-js';
-import { ZONA, CELDAS, etiquetas } from './zona.js';
+import { ZONA, CELDAS, CELDA_BIBLIOTECA, etiquetas } from './zona.js';
 import { ANDARES, ANDAR_POR_DEFECTO, andarValido } from './andares.js';
 
 export * from './andares.js';
@@ -49,17 +49,40 @@ function azar(semilla) {
 
 // ---- hábitat ----
 
+/**
+ * Límite de los vecinos: no pasan del borde sur del río Arzobispo. Son las celdas a las que se
+ * llega a pie desde la biblioteca sin pisar el agua; las celdas de agua forman una barrera continua
+ * a lo ancho de la zona. Los equipos sí pueden caminar al norte, pero allí solo hay estática.
+ * Vale para todas las mesas (decisión de MangleRojo, 6 nov 2026).
+ */
+export const CELDAS_DE_VECINOS = (() => {
+  const sur = new Set([CELDA_BIBLIOTECA]);
+  const pila = [CELDA_BIBLIOTECA];
+  while (pila.length) {
+    for (const v of gridDisk(pila.pop(), 1)) {
+      if (ZONA[v] !== undefined && !etiquetas(v).includes('agua') && !sur.has(v)) { sur.add(v); pila.push(v); }
+    }
+  }
+  return sur;
+})();
+
+const CELDAS_AGUA = CELDAS.filter((c) => etiquetas(c).includes('agua'));
+
+/** Celdas del lado sur a `n` celdas o menos del agua: la ribera de los andares que siguen el río. */
+function ribera(n) {
+  return new Set([...CELDAS_DE_VECINOS].filter((c) => CELDAS_AGUA.some((a) => distancia(a, c) <= n)));
+}
+
 const cacheHabitat = new Map();
 
-/** Celdas de la zona donde puede estar un andar, en orden estable. */
+/** Celdas del lado sur donde puede estar un andar, en orden estable. */
 export function habitatDe(andar) {
   if (cacheHabitat.has(andar)) return cacheHabitat.get(andar);
   const a = ANDARES[andar] || ANDARES[ANDAR_POR_DEFECTO];
-  const celdas = CELDAS.filter((c) => {
-    const et = etiquetas(c);
-    return !et.includes('cruce') && et.some((e) => a.habitat.includes(e));
-  });
-  const base = celdas.length ? celdas : CELDAS.filter((c) => !etiquetas(c).includes('cruce'));
+  const enRibera = a.ribera ? ribera(a.ribera) : null;
+  const sur = CELDAS.filter((c) => CELDAS_DE_VECINOS.has(c) && !etiquetas(c).includes('cruce'));
+  const celdas = sur.filter((c) => (enRibera ? enRibera.has(c) : etiquetas(c).some((e) => a.habitat.includes(e))));
+  const base = celdas.length ? celdas : sur;
   const lista = sinIslasChicas(base, a.salto);
   cacheHabitat.set(andar, lista);
   return lista;
@@ -89,12 +112,32 @@ function sinIslasChicas(celdas, salto) {
 
 const andarDe = (vecino) => (andarValido(vecino?.andar) ? vecino.andar : ANDAR_POR_DEFECTO);
 
-/** La casa del vecino: una celda fija de su hábitat que depende de su id (prefiere sus etiquetas). */
-export function casaDe(vecino) {
-  const andar = andarDe(vecino);
+export const RADIO_CASA = 5; // celdas (≈ 95 m) alrededor de la biblioteca
+
+const cacheCasas = new Map();
+
+/**
+ * Celdas del hábitat donde puede quedar una casa: a RADIO_CASA celdas o menos de la biblioteca.
+ * Si el hábitat queda lejos (la ribera está a unos 280 m), las más cercanas: hasta 2 celdas más
+ * allá de la primera.
+ */
+export function casasPosibles(andar) {
+  if (cacheCasas.has(andar)) return cacheCasas.get(andar);
   const habitat = habitatDe(andar);
-  const pref = habitat.filter((c) => etiquetas(c).some((e) => ANDARES[andar].prefiere.includes(e)));
-  const opciones = pref.length ? pref : habitat;
+  const d = new Map(habitat.map((c) => [c, distancia(CELDA_BIBLIOTECA, c)]));
+  const dmin = Math.min(...d.values());
+  const radio = Math.max(RADIO_CASA, dmin + 2);
+  const lista = habitat.filter((c) => d.get(c) <= radio);
+  cacheCasas.set(andar, lista);
+  return lista;
+}
+
+/**
+ * La casa del vecino: una celda fija de su hábitat, cerca de la biblioteca, que depende de su id.
+ * Así cada día sale desde donde hay señal; a lo largo del día se inclina hacia lo que prefiere.
+ */
+export function casaDe(vecino) {
+  const opciones = casasPosibles(andarDe(vecino));
   return opciones[hash(`casa:${vecino.id}`) % opciones.length];
 }
 
@@ -105,6 +148,11 @@ export function relojDelJuego(t) {
   const local = t + OFFSET_BOGOTA - INICIO_DIA;
   const dia = Math.floor(local / DIA);
   return { dia, desdeInicio: local - dia * DIA };
+}
+
+/** Instante (ms) en que empezó el día del juego de t: las 6:00 de Bogotá. */
+export function inicioDelDia(t) {
+  return t - relojDelJuego(t).desdeInicio;
 }
 
 /** Pasos que ya dio el vecino hoy. */
@@ -154,6 +202,13 @@ export function celdaDelVecino(vecino, t) {
   const { dia, desdeInicio } = relojDelJuego(t);
   const r = recorrido(vecino, dia, pasosHoy(ANDARES[andarDe(vecino)], desdeInicio));
   return r[r.length - 1];
+}
+
+/** Todo el camino del vecino hoy hasta t: de la casa a donde está, sin repetir celdas seguidas. */
+export function recorridoDelDia(vecino, t) {
+  const { dia, desdeInicio } = relojDelJuego(t);
+  const r = recorrido(vecino, dia, pasosHoy(ANDARES[andarDe(vecino)], desdeInicio));
+  return r.filter((c, i) => i === 0 || c !== r[i - 1]);
 }
 
 /**

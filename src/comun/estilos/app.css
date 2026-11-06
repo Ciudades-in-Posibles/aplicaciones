@@ -688,15 +688,32 @@ button { cursor: pointer; }
 .mapa-r .celdas polygon.bib { fill: var(--crema); }
 .mapa-r .bib-t { fill: var(--crema); font: 700 12px/1 var(--mono); text-anchor: middle; letter-spacing: .06em; text-transform: uppercase; paint-order: stroke; stroke: var(--fondo); stroke-width: 4px; stroke-linejoin: round; }
 .mapa-r .sendero { fill: none; stroke: var(--c); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 1 5; opacity: .9; }
-.mapa-r .rastro { fill: var(--c); stroke: var(--calle); stroke-width: 1.2; transition: cx 1s ease, cy 1s ease; }
+.mapa-r .rastro { fill: var(--c); stroke: var(--calle); stroke-width: 1.2; }
+/* el vecino donde está ahora: se desliza de una celda a la siguiente (en el repaso, rápido) */
+.mapa-r .cabeza-r { cursor: pointer; transition: transform 1s ease; }
+.mapa-r.repaso .cabeza-r { transition-duration: .15s; }
+.mapa-r .vecino-r { transition: opacity .3s ease; }
+.mapa-r .vecino-r.apagado { opacity: .18; }
+/* el vecino que se sigue: su casa y todo su camino del día */
+.mapa-r .casa-r { fill: none; stroke: var(--c); stroke-width: 2.4; stroke-linejoin: round; }
+.mapa-r .dia-r { fill: none; stroke: var(--c); stroke-width: 1.2; stroke-linejoin: round; stroke-linecap: round; opacity: .7; }
 .mapa-r .num-r { fill: var(--calle); font: 900 9px/1 var(--f); text-anchor: middle; pointer-events: none; }
 .mapa-r .foto-r image { filter: grayscale(1); }
 .mapa-r .foto-r polygon { fill: none; stroke-width: 2; }
-.leyenda-r { display: grid; gap: 1vw; align-content: start; }
+.leyenda-r { display: grid; gap: 1vw; align-content: start; max-height: calc(100dvh - 7vw); overflow-y: auto; }
 .leyenda-r h2 { margin: 0; font: 800 2vw/1 var(--f); }
 .leyenda-r p { margin: 0; font: 400 1.1vw/1.4 var(--f); color: var(--tinta-2); }
-.leyenda-r ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .8vw; }
-.leyenda-r li { display: flex; gap: .8vw; align-items: center; }
+.leyenda-r ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .6vw; }
+.leyenda-r li { display: block; }
+.leyenda-r .vecino-l { display: flex; gap: .8vw; align-items: center; width: 100%; padding: .3vw .4vw; margin: -.3vw -.4vw; text-align: left; font: inherit; color: inherit; background: transparent; border: 0; border-radius: .6vw; cursor: pointer; transition: opacity .3s ease, background .2s ease; }
+.leyenda-r .vecino-l:hover, .leyenda-r .vecino-l:focus-visible { background: rgba(255, 255, 255, .06); }
+.leyenda-r .vecino-l.on { background: rgba(255, 255, 255, .1); box-shadow: inset .25vw 0 0 var(--crema); }
+.leyenda-r .vecino-l.apagado { opacity: .45; }
+.leyenda-r .aviso-r { font: 500 .85vw/1.3 var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--amarillo, var(--crema)); }
+.reloj-r { display: grid; gap: .5vw; padding-bottom: .8vw; border-bottom: 1px solid var(--tinta-2); }
+.reloj-r .reloj-fila { display: flex; justify-content: space-between; align-items: baseline; gap: .6vw; font: 500 .8vw/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-2); }
+.reloj-r .reloj-hora { font: 800 2.2vw/1 var(--mono); letter-spacing: 0; color: var(--crema); font-variant-numeric: tabular-nums; }
+.reloj-r input[type=range] { width: 100%; accent-color: var(--crema); }
 .leyenda-r .k { flex: 0 0 auto; display: grid; place-items: center; width: 2.4vw; height: 2.4vw; font: 900 1.3vw/1 var(--f); color: var(--calle); border-radius: .6vw .3vw .7vw .3vw; }
 .leyenda-r b { display: block; font: 700 1.2vw/1.2 var(--f); }
 .leyenda-r small { display: block; font: 500 .85vw/1.3 var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--tinta-2); }
@@ -725,6 +742,7 @@ button { cursor: pointer; }
 .mapa-r .base .camino.pedestrian { stroke-dasharray: none; }
 .mapa-r .base .nombre-via { fill: var(--crema); font: 600 7px/1 var(--mono); letter-spacing: .04em; text-anchor: middle; paint-order: stroke; stroke: var(--fondo); stroke-width: 2.5px; stroke-linejoin: round; opacity: .85; }
 @media (max-width: 800px) { .rastros { grid-template-columns: 1fr; } .mapa-r { height: 70dvh; } }
+@media (prefers-reduced-motion: reduce) { .mapa-r .cabeza-r, .mapa-r .vecino-r { transition: none; } }
 
 /* ---------- Visor /maletin: el maletín en 3D sobre el fondo del sitio ---------- */
 .al-aire.maletin-v {
