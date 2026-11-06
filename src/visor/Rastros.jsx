@@ -38,16 +38,16 @@ export default function Rastros({ vecinos, senales }) {
       const k = vistas[s.celda] = (vistas[s.celda] || 0) + 1;
       const [x, y] = centroDe(s.celda, CENTRO);
       const ang = (k - 1) * 2.4;
-      const r = k === 1 ? 0 : 12 + 4 * k;
+      const r = k === 1 ? 0 : 8 + 3 * k;
       return { s, x: x + Math.cos(ang) * r, y: y + Math.sin(ang) * r };
     });
   }, [conRastro]);
 
   return (
     <div className="rastros">
-      <svg className="mapa-r" viewBox={viewBox(caja, 30)} role="img" aria-label="Mapa de rastros alrededor de la Biblioteca El Parque">
+      <svg className="mapa-r" viewBox={viewBox(caja, 16)} role="img" aria-label="Mapa de rastros alrededor de la Biblioteca El Parque">
         <defs>
-          <clipPath id="hex-foto"><polygon points="0,-22 19,-11 19,11 0,22 -19,11 -19,-11" /></clipPath>
+          <clipPath id="hex-foto"><polygon points="0,-13 11.3,-6.5 11.3,6.5 0,13 -11.3,6.5 -11.3,-6.5" /></clipPath>
         </defs>
         {poligonos.map((p) => {
           const et = etiquetas(p.celda);
@@ -57,17 +57,17 @@ export default function Rastros({ vecinos, senales }) {
         {senderos.map(({ v, rastros }) => (
           <g key={v.id} style={{ '--c': `var(--c${v.canal})` }}>
             {rastros.length > 1 && <polyline className="sendero" points={rastros.map((r) => r.xy.join(',')).join(' ')} />}
-            {rastros.map((r) => <circle key={r.celda} className="rastro" cx={r.xy[0]} cy={r.xy[1]} r={6 + 8 * r.intensidad} style={{ opacity: 0.25 + 0.75 * r.intensidad }} />)}
-            {rastros[0] && <text className="num-r" x={rastros[0].xy[0]} y={rastros[0].xy[1] + 5}>{v.canal}</text>}
+            {rastros.map((r) => <circle key={r.celda} className="rastro" cx={r.xy[0]} cy={r.xy[1]} r={3 + 5 * r.intensidad} style={{ opacity: 0.25 + 0.75 * r.intensidad }} />)}
+            {rastros[0] && <text className="num-r" x={rastros[0].xy[0]} y={rastros[0].xy[1] + 3}>{v.canal}</text>}
           </g>
         ))}
         {fotos.map(({ s, x, y }) => (
           <g key={s.id} transform={`translate(${x.toFixed(1)},${y.toFixed(1)})`} className="foto-r">
-            <image href={s.imagen} x="-22" y="-22" width="44" height="44" preserveAspectRatio="xMidYMid slice" clipPath="url(#hex-foto)" />
-            <polygon points="0,-22 19,-11 19,11 0,22 -19,11 -19,-11" style={{ stroke: `var(--c${s.canal})` }} />
+            <image href={s.imagen} x="-13" y="-13" width="26" height="26" preserveAspectRatio="xMidYMid slice" clipPath="url(#hex-foto)" />
+            <polygon points="0,-13 11.3,-6.5 11.3,6.5 0,13 -11.3,6.5 -11.3,-6.5" style={{ stroke: `var(--c${s.canal})` }} />
           </g>
         ))}
-        <text className="bib-t" x={bib[0]} y={bib[1] - 34}>Biblioteca</text>
+        <text className="bib-t" x={bib[0]} y={bib[1] - 22}>Biblioteca</text>
       </svg>
 
       <aside className="leyenda-r">

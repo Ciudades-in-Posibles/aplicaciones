@@ -679,18 +679,18 @@ button { cursor: pointer; }
 .al-aire.con-rastros { grid-template-columns: 1fr; }
 .rastros { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 22vw); gap: 1.6vw; min-height: 0; align-items: center; }
 .mapa-r { width: 100%; height: calc(100dvh - 7vw); display: block; }
-.mapa-r polygon { fill: var(--superficie); stroke: var(--fondo); stroke-width: 3; }
+.mapa-r polygon { fill: var(--superficie); stroke: var(--fondo); stroke-width: 1.6; }
 .mapa-r polygon.agua { fill: #2a4f66; }
 .mapa-r polygon.cruce { fill: #1c1c1f; }
 .mapa-r polygon.arb { fill: #3d4436; }
 .mapa-r polygon.orilla { fill: #2f3b40; }
 .mapa-r polygon.bib { fill: var(--crema); }
-.mapa-r .bib-t { fill: var(--crema); font: 700 18px/1 var(--mono); text-anchor: middle; letter-spacing: .06em; text-transform: uppercase; paint-order: stroke; stroke: var(--fondo); stroke-width: 6px; stroke-linejoin: round; }
-.mapa-r .sendero { fill: none; stroke: var(--c); stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 2 10; opacity: .9; }
-.mapa-r .rastro { fill: var(--c); stroke: var(--calle); stroke-width: 2.5; transition: cx 1s ease, cy 1s ease; }
-.mapa-r .num-r { fill: var(--calle); font: 900 15px/1 var(--f); text-anchor: middle; pointer-events: none; }
+.mapa-r .bib-t { fill: var(--crema); font: 700 12px/1 var(--mono); text-anchor: middle; letter-spacing: .06em; text-transform: uppercase; paint-order: stroke; stroke: var(--fondo); stroke-width: 4px; stroke-linejoin: round; }
+.mapa-r .sendero { fill: none; stroke: var(--c); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 1 5; opacity: .9; }
+.mapa-r .rastro { fill: var(--c); stroke: var(--calle); stroke-width: 1.2; transition: cx 1s ease, cy 1s ease; }
+.mapa-r .num-r { fill: var(--calle); font: 900 9px/1 var(--f); text-anchor: middle; pointer-events: none; }
 .mapa-r .foto-r image { filter: grayscale(1); }
-.mapa-r .foto-r polygon { fill: none; stroke-width: 4; }
+.mapa-r .foto-r polygon { fill: none; stroke-width: 2; }
 .leyenda-r { display: grid; gap: 1vw; align-content: start; }
 .leyenda-r h2 { margin: 0; font: 800 2vw/1 var(--f); }
 .leyenda-r p { margin: 0; font: 400 1.1vw/1.4 var(--f); color: var(--tinta-2); }

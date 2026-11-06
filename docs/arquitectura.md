@@ -54,11 +54,13 @@ La cola de salida (`src/transmisor/red/transmitir.js`) trabaja así:
 
 ## Vecinos y rastros
 
-La zona son 168 celdas H3 de resolución 11 alrededor de la Biblioteca El Parque (`zona.js`, generada con datos de OpenStreetMap, ODbL), cada una con sus etiquetas: `agua`, `orilla`, `arboles`, `prado`, `edificio`, `biblioteca` y `cruce`. Quedan fuera las vías primarias y secundarias. Las terciarias quedan como `cruce`, por donde no anda ningún vecino.
+La zona son 399 celdas H3 de resolución 12 (≈ 11 m de lado) alrededor de la Biblioteca El Parque (`zona.js`), cada una con sus etiquetas: `agua`, `orilla`, `arboles`, `prado`, `edificio`, `biblioteca` y `cruce`. Se genera con `npm run zona` (`scripts/zona/generar.mjs` y `geo.json`, datos de OpenStreetMap, ODbL). Quedan fuera las celdas que tocan una vía primaria o secundaria, también las de la biblioteca, y solo entra lo que se recorre a pie desde la biblioteca: la zona queda entera del lado occidental de la Avenida Carrera 5. Las vías terciarias quedan como `cruce`, por donde no anda ningún vecino.
 
-Cada vecino tiene un andar (`andares.js`): `quieto`, `rio`, `copas`, `suelo` o `noche`. El andar fija su hábitat, cada cuánto da un paso y el largo del salto. El día del juego empieza a las 6:00 de Bogotá: el vecino sale de su casa (una celda que depende de su id) y en cada paso elige una celda de su hábitat con un azar con semilla `id:día:paso`. Sus rastros son las últimas 6 celdas distintas, cada vez más tenues. `noche` descansa hasta las 17:30.
+Hasta el 6 nov 2026 la zona era de resolución 11 (168 celdas) y cruzaba la Carrera 5 por una celda de la biblioteca que la tocaba; por eso se rehízo.
 
-En la Antena, la ubicación (`watchPosition`) se vuelve celda en el teléfono. `rastroMasCercano` mide la distancia en celdas: a más de 8 solo hay estática, y a 1 o menos aparece el rastro. Al registrarlo, la toma guarda `celda` (la del rastro, no la del equipo) y `vecino`. Esos dos campos viajan a la callable y el servidor los valida (la celda tiene que estar en `functions/src/zona.js` y el vecino tiene que ser un id válido) antes de escribirlos en la señal.
+Cada vecino tiene un andar (`andares.js`): `quieto`, `rio`, `copas`, `suelo` o `noche`. El andar fija su hábitat, cada cuánto da un paso y el largo del salto. El día del juego empieza a las 6:00 de Bogotá: el vecino sale de su casa (una celda que depende de su id) y en cada paso elige una celda de su hábitat con un azar con semilla `id:día:paso`. Sus rastros son las últimas 10 celdas distintas, cada vez más tenues. `noche` descansa hasta las 17:30. Los cruces parten el hábitat en islas: cada vecino vive en una, y las islas de menos de 20 celdas no se usan.
+
+En la Antena, la ubicación (`watchPosition`) se vuelve celda en el teléfono. `rastroMasCercano` mide la distancia en celdas: a más de 12 (≈ 225 m) solo hay estática, y a 2 o menos (≈ 40 m, el margen del GPS) aparece el rastro. Al registrarlo, la toma guarda `celda` (la del rastro, no la del equipo) y `vecino`. Esos dos campos viajan a la callable y el servidor los valida (la celda tiene que estar en `functions/src/zona.js` y el vecino tiene que ser un id válido) antes de escribirlos en la señal.
 
 ## En el servidor
 

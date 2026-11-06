@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gridDistance, cellToLatLng } from 'h3-js';
+import { gridDistance, gridDisk, cellToLatLng } from 'h3-js';
 import { ZONA, CELDAS, CELDA_BIBLIOTECA, enZona, etiquetas } from '../src/comun/dominio/zona.js';
 import {
   ANDARES, celdaDelVecino, rastrosDelVecino, rastroMasCercano, intensidad, relojDelJuego, casaDe, habitatDe, rumbo,
-  RASTROS_POR_VECINO, DISTANCIA_ENCUENTRO
+  RASTROS_POR_VECINO, DISTANCIA_ENCUENTRO, ALCANCE_SENAL
 } from '../src/comun/dominio/vecinos.js';
 
 // 6 nov 2026, en hora de Bogotá (UTC−5)
@@ -16,8 +16,30 @@ test('zona: la biblioteca está dentro y ninguna celda queda sin etiqueta', () =
   assert.ok(enZona(CELDA_BIBLIOTECA));
   assert.ok(etiquetas(CELDA_BIBLIOTECA).includes('biblioteca'));
   for (const c of CELDAS) assert.ok(ZONA[c].length > 0, c);
-  assert.equal(enZona('8b66e092c773ffe'), false);
+  assert.equal(enZona('8c66e092c7739fe'), false);
   assert.equal(enZona(42), false);
+});
+
+test('zona: se recorre entera a pie desde la biblioteca', () => {
+  const zona = new Set(CELDAS);
+  const vistas = new Set([CELDA_BIBLIOTECA]);
+  const pila = [CELDA_BIBLIOTECA];
+  while (pila.length) for (const v of gridDisk(pila.pop(), 1)) if (zona.has(v) && !vistas.has(v)) { vistas.add(v); pila.push(v); }
+  assert.equal(vistas.size, CELDAS.length);
+});
+
+test('hábitat: sin islas de menos de 20 celdas', () => {
+  for (const andar of Object.keys(ANDARES)) {
+    const hab = new Set(habitatDe(andar));
+    const vistas = new Set();
+    for (const c of hab) {
+      if (vistas.has(c)) continue;
+      const isla = [c];
+      vistas.add(c);
+      for (let i = 0; i < isla.length; i++) for (const v of gridDisk(isla[i], ANDARES[andar].salto)) if (hab.has(v) && !vistas.has(v)) { vistas.add(v); isla.push(v); }
+      assert.ok(isla.length >= 20, `${andar}: isla de ${isla.length}`);
+    }
+  }
 });
 
 test('reloj del juego: el día empieza a las 6:00 de Bogotá', () => {
@@ -84,8 +106,9 @@ test('rastros: distintos, del más fresco al más viejo, y se desvanecen', () =>
 test('intensidad: limpia al lado del rastro, estática lejos', () => {
   assert.equal(intensidad(0), 1);
   assert.equal(intensidad(DISTANCIA_ENCUENTRO), 1);
-  assert.ok(intensidad(3) < intensidad(2));
-  assert.equal(intensidad(20), 0);
+  assert.ok(intensidad(DISTANCIA_ENCUENTRO + 2) < intensidad(DISTANCIA_ENCUENTRO + 1));
+  assert.ok(intensidad(ALCANCE_SENAL) > 0);
+  assert.equal(intensidad(ALCANCE_SENAL + 1), 0);
   assert.equal(intensidad(Infinity), 0);
   assert.ok(intensidad(0, 0.2) < intensidad(0, 1));
 });

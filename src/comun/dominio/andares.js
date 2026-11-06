@@ -14,10 +14,10 @@ const MIN = 60 * 1000;
  */
 export const ANDARES = {
   quieto: { nombre: 'Quieto', ejemplo: 'musgo, liquen', habitat: ['arboles', 'prado', 'orilla', 'edificio'], prefiere: ['arboles'], pasoMin: 60, salto: 1 },
-  rio: { nombre: 'Por el agua', ejemplo: 'quebrada, renacuajo', habitat: ['agua', 'orilla'], prefiere: ['agua'], pasoMin: 10, salto: 1 },
-  copas: { nombre: 'Entre copas', ejemplo: 'mirla, colibrí', habitat: ['arboles', 'prado', 'orilla'], prefiere: ['arboles', 'orilla'], pasoMin: 5, salto: 2 },
-  suelo: { nombre: 'A ras del suelo', ejemplo: 'hormigas, lombriz', habitat: ['prado', 'orilla', 'arboles', 'edificio', 'biblioteca'], prefiere: ['prado'], pasoMin: 15, salto: 1 },
-  noche: { nombre: 'De noche', ejemplo: 'zarigüeya, polilla', habitat: ['prado', 'arboles', 'orilla'], prefiere: ['arboles'], pasoMin: 10, salto: 1, noche: { desde: (17 * 60 + 30) * MIN } }
+  rio: { nombre: 'Por el agua', ejemplo: 'quebrada, renacuajo', habitat: ['agua', 'orilla'], prefiere: ['agua'], pasoMin: 5, salto: 1 },
+  copas: { nombre: 'Entre copas', ejemplo: 'mirla, colibrí', habitat: ['arboles', 'prado', 'orilla'], prefiere: ['arboles', 'orilla'], pasoMin: 5, salto: 3 },
+  suelo: { nombre: 'A ras del suelo', ejemplo: 'hormigas, lombriz', habitat: ['prado', 'orilla', 'arboles', 'edificio', 'biblioteca'], prefiere: ['prado'], pasoMin: 10, salto: 1 },
+  noche: { nombre: 'De noche', ejemplo: 'zarigüeya, polilla', habitat: ['prado', 'arboles', 'orilla'], prefiere: ['arboles'], pasoMin: 5, salto: 1, noche: { desde: (17 * 60 + 30) * MIN } }
 };
 
 export const ANDAR_POR_DEFECTO = 'suelo';

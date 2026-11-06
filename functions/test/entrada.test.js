@@ -88,7 +88,7 @@ test('rastro: celda de la zona y vecino válidos', async () => {
   assert.equal(validarEntrada(d).rastro, null);
   d.toma.celda = CELDA_BIBLIOTECA; d.toma.vecino = 'Xk3pQ9aB7cD1eF2gH4iJ';
   assert.deepEqual(validarEntrada(d).rastro, { celda: CELDA_BIBLIOTECA, vecino: 'Xk3pQ9aB7cD1eF2gH4iJ' });
-  d.toma.celda = '8b66e092c773ffe'; rechaza(d); // no está en la zona
+  d.toma.celda = '8c66e092c7739fe'; rechaza(d); // no está en la zona
   d.toma.celda = 'cualquier cosa'; rechaza(d);
   d.toma.celda = CELDA_BIBLIOTECA; d.toma.vecino = 'x'; rechaza(d);
   d.toma.vecino = 'con espacio'; rechaza(d);

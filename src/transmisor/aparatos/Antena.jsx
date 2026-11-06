@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { latLngToCell, gridDisk, cellToLatLng } from 'h3-js';
+import { latLngToCell, gridDisk, cellToLatLng, getHexagonEdgeLengthAvg } from 'h3-js';
 import { ZONA, CELDA_BIBLIOTECA, RESOLUCION, enZona, etiquetas } from '../../comun/dominio/zona.js';
 import { rastroMasCercano, rumbo, distancia } from '../../comun/dominio/vecinos.js';
 import { dibujarCeldas, centroDe, viewBox } from '../../comun/dominio/mapa.js';
 
 const TIC_MS = 10000; // los vecinos dan un paso cada 5 minutos o más: basta con mirar el reloj cada 10 s
 const PRECISION_DEBIL = 40; // metros
-const RADIO_MAPA = 4; // celdas alrededor del equipo en el mapa del tubo
+const RADIO_MAPA = 10; // celdas alrededor del equipo en el mapa del tubo
+const LADO = getHexagonEdgeLengthAvg(RESOLUCION, 'm'); // metros
 const CAMPO_VISUAL = 60; // grados que abarca la cámara del teléfono, más o menos
 
 /** La celda pedida en la dirección (?celda=…), para probar sin GPS. */
@@ -112,7 +113,7 @@ function MapaTubo({ centro, objetivo, encontrado, rumboTel, flecha, alMarcar, ca
   const celdas = useMemo(() => gridDisk(centro, RADIO_MAPA).filter((c) => ZONA[c] !== undefined), [centro]);
   const origen = useMemo(() => { const [lat, lng] = cellToLatLng(centro); return { lat, lng }; }, [centro]);
   const { poligonos } = useMemo(() => dibujarCeldas(celdas, origen), [celdas, origen]);
-  const r = 29 * (RADIO_MAPA * 1.75 + 1); // metros que caben del centro al borde
+  const r = LADO * (RADIO_MAPA * 1.75 + 1); // metros que caben del centro al borde
   const vb = viewBox({ x: -r * 4 / 3, y: -r, ancho: (r * 8) / 3, alto: 2 * r }, 0);
   const giro = rumboTel == null ? 0 : -rumboTel;
   const objetivoXY = objetivo && encontrado ? centroDe(objetivo, origen) : null;
@@ -167,7 +168,7 @@ export default function Antena({ vecinos, dePrueba, canales, pausa, alRegistrar 
   const rumboDestino = pos && destino && destino !== pos.celda ? rumbo(pos.celda, destino) : null;
   const flecha = rumboDestino == null ? null : brujula.rumboTel == null ? rumboDestino : delta(rumboDestino, brujula.rumboTel);
   const canal = hallazgo ? canales[hallazgo.vecino.canal - 1] : canales[0];
-  const lejos = pos && !dentro ? distancia(pos.celda, CELDA_BIBLIOTECA) : null;
+  const lejos = pos && !dentro ? Math.round((distancia(pos.celda, CELDA_BIBLIOTECA) * LADO * Math.sqrt(3)) / 10) * 10 : null; // metros
 
   // estática: casi tapa el tubo lejos del rastro y se abre al llegar
   const estatica = encontrado ? 0 : 0.92 - 0.7 * senal;
@@ -234,7 +235,7 @@ export default function Antena({ vecinos, dePrueba, canales, pausa, alRegistrar 
         ) : !pos ? (
           <p className="aviso">{fallo ? `${fallo} Toquen en el mapa la celda donde están.` : 'Buscando dónde están…'}</p>
         ) : !dentro ? (
-          <p className="aviso">Están fuera del parque de juego{Number.isFinite(lejos) ? `, a ${lejos} celdas` : ''}. La flecha lleva a la biblioteca.</p>
+          <p className="aviso">Están fuera del parque de juego{Number.isFinite(lejos) ? `, a unos ${lejos} m` : ''}. La flecha lleva a la biblioteca.</p>
         ) : (
           <p className="lente-lat">{senal > 0.6 ? 'Muy cerca.' : senal > 0.25 ? 'Hay señal. Sigan la flecha.' : 'Solo estática. Caminen y miren si se aclara.'}</p>
         )}

@@ -22,9 +22,10 @@ const OFFSET_BOGOTA = -5 * 60 * MIN;
 const INICIO_DIA = 6 * 60 * MIN; // 6:00
 const DIA = 24 * 60 * MIN;
 
-export const RASTROS_POR_VECINO = 6;
-export const DISTANCIA_ENCUENTRO = 1; // a una celda o menos, el rastro aparece
-export const ALCANCE_SENAL = 8; // más lejos de 8 celdas solo hay estática
+// celdas de resolución 12 (≈ 11 m de lado, ≈ 19 m de un centro al siguiente)
+export const RASTROS_POR_VECINO = 10;
+export const DISTANCIA_ENCUENTRO = 2; // a dos celdas o menos (≈ 40 m), el rastro aparece: cubre el error del GPS
+export const ALCANCE_SENAL = 12; // más lejos de 12 celdas (≈ 225 m) solo hay estática
 
 // ---- azar con semilla ----
 
@@ -58,9 +59,32 @@ export function habitatDe(andar) {
     const et = etiquetas(c);
     return !et.includes('cruce') && et.some((e) => a.habitat.includes(e));
   });
-  const lista = celdas.length ? celdas : CELDAS.filter((c) => !etiquetas(c).includes('cruce'));
+  const base = celdas.length ? celdas : CELDAS.filter((c) => !etiquetas(c).includes('cruce'));
+  const lista = sinIslasChicas(base, a.salto);
   cacheHabitat.set(andar, lista);
   return lista;
+}
+
+const ISLA_MINIMA = 20; // celdas
+
+/**
+ * Los cruces parten el hábitat en islas. Cada vecino vive en una, pero en una isla de pocas celdas
+ * quedaría casi quieto: se dejan solo las islas de ISLA_MINIMA celdas o más (si no hay, todas).
+ */
+function sinIslasChicas(celdas, salto) {
+  const conjunto = new Set(celdas);
+  const visto = new Set();
+  const grandes = new Set();
+  for (const c of celdas) {
+    if (visto.has(c)) continue;
+    const isla = [c];
+    visto.add(c);
+    for (let i = 0; i < isla.length; i++) {
+      for (const v of gridDisk(isla[i], salto)) if (conjunto.has(v) && !visto.has(v)) { visto.add(v); isla.push(v); }
+    }
+    if (isla.length >= ISLA_MINIMA) for (const x of isla) grandes.add(x);
+  }
+  return grandes.size ? celdas.filter((c) => grandes.has(c)) : celdas;
 }
 
 const andarDe = (vecino) => (andarValido(vecino?.andar) ? vecino.andar : ANDAR_POR_DEFECTO);

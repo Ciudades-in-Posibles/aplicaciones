@@ -9,7 +9,8 @@
     "preview": "vite preview --host",
     "test": "node --test test/*.test.js",
     "dev:local": "VITE_EMULADORES=1 vite --host",
-    "emuladores": "npx -y firebase-tools@latest emulators:start --only functions,firestore,auth --project ciudades-in-posibles"
+    "emuladores": "npx -y firebase-tools@latest emulators:start --only functions,firestore,auth --project ciudades-in-posibles",
+    "zona": "node scripts/zona/generar.mjs"
   },
   "dependencies": {
     "firebase": "^11.3.0",
