@@ -12,7 +12,7 @@ const rechaza = (datos) => assert.throws(() => validarEntrada(datos), EntradaInv
 test('una entrada válida devuelve el canal desde canales.js', () => {
   const e = validarEntrada(base());
   assert.equal(e.canal.nombre, 'Grieta');
-  assert.match(e.canal.lente, /^Encuadra lo que crece/);
+  assert.match(e.canal.lente, /^Encuadra una grieta y lo que guarda/);
   assert.equal(e.toma.nota, 'una nota');
 });
 

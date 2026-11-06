@@ -5,13 +5,13 @@
  */
 
 export const CANALES = [
-  { n: 1, nombre: 'Huella', color: 'rojo', lente: 'Encuadra algo que pasó por aquí y ya no está: marcas, desgaste, rastros.' },
-  { n: 2, nombre: 'Ritmo', color: 'naranja', lente: 'Encuadra algo que se repite. Cuenta cuántas veces ocurre en un minuto.' },
-  { n: 3, nombre: 'Grieta', color: 'amarillo', lente: 'Encuadra lo que crece, se cuela o se rompe donde nadie lo planeó.' },
-  { n: 4, nombre: 'A ras', color: 'lima', lente: 'Encuadra lo que mide menos que tu mano, a la altura del suelo.' },
-  { n: 5, nombre: 'Borde', color: 'menta', lente: 'Encuadra el lugar donde una cosa termina y empieza otra.' },
-  { n: 6, nombre: 'Refugio', color: 'turquesa', lente: 'Encuadra dónde se resguarda algo que no eres tú.' },
-  { n: 7, nombre: 'Fuente', color: 'azul', lente: 'Encuadra de dónde sale un sonido que no es una voz humana.' },
+  { n: 1, nombre: 'Huella', color: 'rojo', lente: 'Encuadra una marca que nadie hizo a propósito: mancha, desgaste, óxido o pisada. ¿Quién pasó por aquí?' },
+  { n: 2, nombre: 'Ritmo', color: 'naranja', lente: 'Encuadra un patrón: algo que se repite en el tiempo o en el espacio (hojas, baldosas, pasos). Cuenta las veces.' },
+  { n: 3, nombre: 'Grieta', color: 'amarillo', lente: 'Encuadra una grieta y lo que guarda: lo que crece, se cuela o se rompe donde nadie lo planeó.' },
+  { n: 4, nombre: 'A ras', color: 'lima', lente: 'Encuadra el piso bajo tus pies como si fuera un mundo entero: lo que mide menos que tu mano.' },
+  { n: 5, nombre: 'Borde', color: 'menta', lente: 'Encuadra un borde donde lo vivo toca lo fabricado, o lo nuevo toca lo gastado.' },
+  { n: 6, nombre: 'Refugio', color: 'turquesa', lente: 'Encuadra un rincón que nadie mira: ahí se resguarda algo que no eres tú.' },
+  { n: 7, nombre: 'Fuente', color: 'azul', lente: 'Encuadra de dónde sale un sonido o un olor.' },
   { n: 8, nombre: 'Abierto', color: 'naranja-claro', lente: 'La mesa escribe la lente al iniciar la partida.', abierto: true },
   { n: 9, nombre: 'Abierto', color: 'violeta', lente: 'La mesa escribe la lente al iniciar la partida.', abierto: true }
 ];
