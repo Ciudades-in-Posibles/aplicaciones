@@ -1,6 +1,8 @@
-// Genera la zona de los vecinos (src/comun/dominio/zona.js y su copia functions/src/zona.js)
-// a partir de geo.json: biblioteca, parque, agua, arbolado, edificios y vías del Parque Nacional,
-// extraídos de OpenStreetMap (© colaboradores de OpenStreetMap, ODbL) el 6 nov 2026.
+// Genera la zona de los vecinos (src/comun/dominio/zona.js y su copia functions/src/zona.js) y el
+// mapa dibujado del Visor (src/visor/mapaBase.js) a partir de geo.json: biblioteca, parque, agua,
+// arbolado, prado, edificios, vías y senderos del Parque Nacional, extraídos de OpenStreetMap
+// (© colaboradores de OpenStreetMap, ODbL) el 6 nov 2026. Los senderos («caminos») solo se dibujan:
+// no cuentan para la zona.
 //
 //   npm run zona                 (resolución 12, radio de 40 celdas)
 //   node scripts/zona/generar.mjs [radio] [resolución]
@@ -115,3 +117,29 @@ export function etiquetas(celda) {
 `;
 for (const s of salidas) fs.writeFileSync(s, js);
 console.log('celdas', celdas.length, cuenta, 'bib', celdaBib, bib);
+
+// ---- mapa dibujado del Visor: lo que toca la caja de la zona más un margen ----
+let [s0, n0, o0, e0] = [90, -90, 180, -180];
+for (const c of celdas) for (const [la, lo] of h3.cellToBoundary(c)) { s0 = Math.min(s0, la); n0 = Math.max(n0, la); o0 = Math.min(o0, lo); e0 = Math.max(e0, lo); }
+const MARGEN = 0.0008; // ≈ 90 m
+const enCaja = ([la, lo]) => la > s0 - MARGEN && la < n0 + MARGEN && lo > o0 - MARGEN && lo < e0 + MARGEN;
+const redondo = ([la, lo]) => [Number(la.toFixed(6)), Number(lo.toFixed(6))];
+const lineas6 = (lista) => lista.filter((l) => l.some(enCaja)).map((l) => l.map(redondo));
+const base = {
+  parque: geo.parque.map(redondo),
+  prado: lineas6(geo.prado),
+  arboles: lineas6(geo.arboles_area),
+  agua: lineas6(geo.agua),
+  edificios: lineas6(geo.edificios),
+  vias: geo.vias.filter((v) => v.pts.some(enCaja)).map((v) => ({ tipo: v.tipo, nombre: v.nombre || '', pts: v.pts.map(redondo) })),
+  caminos: (geo.caminos || []).filter((v) => v.pts.some(enCaja)).map((v) => ({ tipo: v.tipo, pts: v.pts.map(redondo) }))
+};
+const jsBase = `/**
+ * Mapa dibujado bajo los hexágonos del mapa de rastros (Visor, /rastros).
+ * Datos © colaboradores de OpenStreetMap (ODbL), extraídos el 6 nov 2026 y recortados a la zona
+ * de los vecinos más ≈ 90 m. Coordenadas [lat, lng]. No se edita a mano: «npm run zona».
+ */
+export const MAPA_BASE = ${JSON.stringify(base)};
+`;
+fs.writeFileSync(new URL('../../src/visor/mapaBase.js', import.meta.url), jsBase);
+console.log('mapa base', Object.fromEntries(Object.entries(base).map(([k, v]) => [k, v.length])), Math.round(jsBase.length / 1024), 'KB');

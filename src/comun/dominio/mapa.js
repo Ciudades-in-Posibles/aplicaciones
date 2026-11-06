@@ -44,3 +44,49 @@ export function centroDe(celda, centro) {
 
 /** viewBox de una caja con margen. */
 export const viewBox = (caja, margen = 10) => `${(caja.x - margen).toFixed(1)} ${(caja.y - margen).toFixed(1)} ${(caja.ancho + 2 * margen).toFixed(1)} ${(caja.alto + 2 * margen).toFixed(1)}`;
+
+/** Inversa de `proyeccion`: de metros desde el centro a [lat, lng]. */
+export function desproyeccion(centro) {
+  const k = Math.cos((centro.lat * Math.PI) / 180);
+  return (x, y) => [centro.lat - y / M_POR_GRADO, centro.lng + x / (M_POR_GRADO * k)];
+}
+
+/** Puntos de un polyline o polygon a partir de [lat, lng]. */
+export function trazo(pts, centro) {
+  const p = proyeccion(centro);
+  return pts.map(([lat, lng]) => p(lat, lng).map((v) => v.toFixed(1)).join(',')).join(' ');
+}
+
+// ---- teselas web-mercator (OpenStreetMap) ----
+
+const teselaX = (lng, z) => ((lng + 180) / 360) * 2 ** z;
+const teselaY = (lat, z) => {
+  const r = (lat * Math.PI) / 180;
+  return ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * 2 ** z;
+};
+const lngDe = (x, z) => (x / 2 ** z) * 360 - 180;
+const latDe = (y, z) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / 2 ** z))) * 180) / Math.PI;
+
+export const URL_TESELA = (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+
+/**
+ * Teselas de OpenStreetMap que cubren una caja en metros (como la de `dibujarCeldas`), cada una con
+ * su rectángulo en metros desde el centro. A la escala del parque la proyección plana y la de
+ * mercator coinciden a menos de un metro.
+ * @returns {{z: number, x: number, y: number, url: string, rect: {x: number, y: number, ancho: number, alto: number}}[]}
+ */
+export function teselas(caja, centro, z = 18) {
+  const des = desproyeccion(centro);
+  const pro = proyeccion(centro);
+  const [latN, lngO] = des(caja.x, caja.y);
+  const [latS, lngE] = des(caja.x + caja.ancho, caja.y + caja.alto);
+  const out = [];
+  for (let x = Math.floor(teselaX(lngO, z)); x <= Math.floor(teselaX(lngE, z)); x++) {
+    for (let y = Math.floor(teselaY(latN, z)); y <= Math.floor(teselaY(latS, z)); y++) {
+      const [x0, y0] = pro(latDe(y, z), lngDe(x, z));
+      const [x1, y1] = pro(latDe(y + 1, z), lngDe(x + 1, z));
+      out.push({ z, x, y, url: URL_TESELA(z, x, y), rect: { x: x0, y: y0, ancho: x1 - x0, alto: y1 - y0 } });
+    }
+  }
+  return out;
+}

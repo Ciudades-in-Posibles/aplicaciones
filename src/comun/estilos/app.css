@@ -679,12 +679,12 @@ button { cursor: pointer; }
 .al-aire.con-rastros { grid-template-columns: 1fr; }
 .rastros { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 22vw); gap: 1.6vw; min-height: 0; align-items: center; }
 .mapa-r { width: 100%; height: calc(100dvh - 7vw); display: block; }
-.mapa-r polygon { fill: var(--superficie); stroke: var(--fondo); stroke-width: 1.6; }
-.mapa-r polygon.agua { fill: #2a4f66; }
-.mapa-r polygon.cruce { fill: #1c1c1f; }
-.mapa-r polygon.arb { fill: #3d4436; }
-.mapa-r polygon.orilla { fill: #2f3b40; }
-.mapa-r polygon.bib { fill: var(--crema); }
+.mapa-r .celdas polygon { fill: var(--superficie); stroke: var(--fondo); stroke-width: 1.6; }
+.mapa-r .celdas polygon.agua { fill: #2a4f66; }
+.mapa-r .celdas polygon.cruce { fill: #1c1c1f; }
+.mapa-r .celdas polygon.arb { fill: #3d4436; }
+.mapa-r .celdas polygon.orilla { fill: #2f3b40; }
+.mapa-r .celdas polygon.bib { fill: var(--crema); }
 .mapa-r .bib-t { fill: var(--crema); font: 700 12px/1 var(--mono); text-anchor: middle; letter-spacing: .06em; text-transform: uppercase; paint-order: stroke; stroke: var(--fondo); stroke-width: 4px; stroke-linejoin: round; }
 .mapa-r .sendero { fill: none; stroke: var(--c); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 1 5; opacity: .9; }
 .mapa-r .rastro { fill: var(--c); stroke: var(--calle); stroke-width: 1.2; transition: cx 1s ease, cy 1s ease; }
@@ -700,4 +700,27 @@ button { cursor: pointer; }
 .leyenda-r b { display: block; font: 700 1.2vw/1.2 var(--f); }
 .leyenda-r small { display: block; font: 500 .85vw/1.3 var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--tinta-2); }
 .leyenda-r .pie-r { font: 500 .9vw/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.fondo-r { display: flex; flex-wrap: wrap; align-items: center; gap: .4vw; font: 500 .85vw/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-2); }
+.fondo-r span { margin-right: .3vw; }
+.fondo-r button { font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--crema); background: transparent; border: 1px solid var(--tinta-2); border-radius: .4vw; padding: .35vw .6vw; cursor: pointer; }
+.fondo-r button.on { background: var(--crema); color: var(--calle); border-color: var(--crema); }
+.leyenda-r .atrib-r { font: 400 .75vw/1.3 var(--mono); color: var(--tinta-2); }
+/* mapa debajo de los hexágonos: las celdas se vuelven translúcidas */
+.mapa-r.con-fondo .celdas polygon { fill-opacity: .28; stroke: var(--crema); stroke-opacity: .22; stroke-width: .8; }
+.mapa-r.con-fondo .celdas polygon.bib { fill-opacity: .7; }
+.mapa-r .teselas image { filter: grayscale(1) brightness(.55) contrast(1.1); }
+.mapa-r .base .parque { fill: #26282a; }
+.mapa-r .base .prado { fill: #2c3229; }
+.mapa-r .base .arb { fill: #33402f; }
+.mapa-r .base .agua { fill: none; stroke: #3b6f8f; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.mapa-r .base .edif { fill: #4a4744; stroke: #5c5853; stroke-width: .6; }
+.mapa-r .base .via { fill: none; stroke: #6b6660; stroke-linecap: round; stroke-linejoin: round; }
+.mapa-r .base .via.primary { stroke-width: 11; stroke: #857d72; }
+.mapa-r .base .via.secondary { stroke-width: 9; stroke: #7a736a; }
+.mapa-r .base .via.tertiary { stroke-width: 6; }
+.mapa-r .base .via.residential, .mapa-r .base .via.service { stroke-width: 3.5; stroke: #5b5752; }
+.mapa-r .base .camino { fill: none; stroke: #9a9284; stroke-width: 1.2; stroke-dasharray: 3 2; stroke-linecap: round; }
+.mapa-r .base .camino.steps { stroke-dasharray: 1 1.5; stroke-width: 2.4; }
+.mapa-r .base .camino.pedestrian { stroke-dasharray: none; }
+.mapa-r .base .nombre-via { fill: var(--crema); font: 600 7px/1 var(--mono); letter-spacing: .04em; text-anchor: middle; paint-order: stroke; stroke: var(--fondo); stroke-width: 2.5px; stroke-linejoin: round; opacity: .85; }
 @media (max-width: 800px) { .rastros { grid-template-columns: 1fr; } .mapa-r { height: 70dvh; } }

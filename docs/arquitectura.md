@@ -62,6 +62,12 @@ Cada vecino tiene un andar (`andares.js`): `quieto`, `rio`, `copas`, `suelo` o `
 
 En la Antena, la ubicación (`watchPosition`) se vuelve celda en el teléfono. `rastroMasCercano` mide la distancia en celdas: a más de 12 (≈ 225 m) solo hay estática, y a 2 o menos (≈ 40 m, el margen del GPS) aparece el rastro. Al registrarlo, la toma guarda `celda` (la del rastro, no la del equipo) y `vecino`. Esos dos campos viajan a la callable y el servidor los valida (la celda tiene que estar en `functions/src/zona.js` y el vecino tiene que ser un id válido) antes de escribirlos en la señal.
 
+El mapa de rastros del Visor puede llevar un fondo, que se elige en la leyenda o con la tecla M y se guarda en `localStorage` (`transmisor-rastros-fondo`):
+- **Dibujado**: parque, prado, arbolado, agua, edificios, vías con su nombre y senderos peatonales, de `src/visor/mapaBase.js`. Lo genera `npm run zona` a partir de `scripts/zona/geo.json` (OSM, ODbL), recortado a la zona más ≈ 90 m. No pide nada a la red.
+- **OSM**: teselas de `tile.openstreetmap.org` en zoom 18 (unas 56 por pantalla), en gris, con la atribución «© colaboradores de OpenStreetMap». Es la única petición del Visor a un servidor ajeno. La política de uso de OSM pide poco tráfico, atribución visible y nada de descargas masivas, y una pantalla de proyección cumple. Sin red, las teselas no cargan y el mapa de rastros sigue funcionando.
+
+Con cualquier fondo, los hexágonos se vuelven translúcidos. `teselas()` y `trazo()` (`src/comun/dominio/mapa.js`) son lógica pura, con tests.
+
 ## En el servidor
 
 `functions/` es el codebase `aplicaciones` del proyecto (el sitio tiene el suyo, `default`). `transmisorTransmitir` es una callable v2 en `us-central1`, con el secreto `OPENROUTER_API_KEY`, 90 s y 512 MiB. Para cada llamada:
