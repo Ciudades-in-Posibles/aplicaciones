@@ -4,6 +4,7 @@ import * as red from './red/consola.js';
 import { enHojas, fechaCorta, textoDeCarta } from '../comun/dominio/archivo.js';
 import { canalValido } from '../comun/dominio/canales.js';
 import './cartas.css';
+import { TermicaLote } from './impresora/Termica.jsx';
 
 /** Carta de registro de una señal: la toma 4:3 en blanco y negro girada a sangre, la ficha del canal y la franja. */
 function Carta({ senal }) {
@@ -36,6 +37,7 @@ function Carta({ senal }) {
 export default function Cartas({ mesa, alCerrar }) {
   const [senales, setSenales] = useState(null);
   const [error, setError] = useState('');
+  const [termica, setTermica] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -63,7 +65,9 @@ export default function Cartas({ mesa, alCerrar }) {
               : 'Todavía no hay tomas al aire en esta mesa.')}
         </p>
         <button className="btn aire" onClick={() => window.print()} disabled={!senales?.length}>Imprimir</button>
+        <button className="btn sec" onClick={() => setTermica((t) => !t)} disabled={!senales?.length} aria-expanded={termica}>Térmica</button>
         <button className="btn sec" onClick={alCerrar}>Cerrar</button>
+        {termica && senales?.length > 0 && <TermicaLote senales={senales} />}
       </div>
       <div className="cp-vista">
         {hojas.map((hoja, i) => (

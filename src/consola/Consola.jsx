@@ -4,6 +4,7 @@ import { CANALES } from '../comun/dominio/canales.js';
 import { mesaAbierta, resumenMesa } from '../comun/dominio/mesa.js';
 import Confirmar from '../comun/Confirmar.jsx';
 import Cartas from './Cartas.jsx';
+import { TermicaSenal } from './impresora/Termica.jsx';
 import { exportarArchivo } from './archivo.js';
 
 // cuando visor.ciudadesinposibles.net esté conectado en Hosting, puede ir aquí
@@ -47,6 +48,7 @@ function NuevaMesa({ alCrear, alCancelar }) {
 }
 
 function DetalleSenal({ mesa, senal, alCerrar }) {
+  const [termica, setTermica] = useState(false);
   return (
     <div className="velo" onClick={(e) => e.target === e.currentTarget && alCerrar()}>
       <div className="carta" role="dialog" aria-modal="true" aria-label={`Toma de ${senal.equipo}`}>
@@ -57,8 +59,10 @@ function DetalleSenal({ mesa, senal, alCerrar }) {
         {senal.nota && <p>«{senal.nota}»</p>}
         {senal.pregunta && <p className="preg">{senal.pregunta}</p>}
         <div className="acciones">
+          <button className="btn sec" onClick={() => setTermica((t) => !t)} aria-expanded={termica}>Imprimir en térmica</button>
           <Confirmar texto="Sacar del aire" pregunta="¿Borrar esta imagen de la mesa para todos? Se pierden sus respuestas." className="btn" alConfirmar={async () => { await red.quitarSenal(mesa, senal.id); alCerrar(); }} />
         </div>
+        {termica && <TermicaSenal senal={senal} />}
       </div>
     </div>
   );

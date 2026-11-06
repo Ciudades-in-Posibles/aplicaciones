@@ -16,7 +16,7 @@ GitHub: `Ciudades-in-Posibles/aplicaciones` (`origin`, público). El sitio vive 
 
 Del mismo build salen otros dos sitios, que se eligen por el hostname en `src/main.jsx`:
 - **Visor** (`visor.ciudadesinposibles.net`, respaldo `/al-aire`): la vista de solo lectura para pantallas y proyectores. Por defecto muestra el televisor portátil del sitio (el mismo SVG de `el-juego`) con la pantalla principal adentro y la marca arriba a la izquierda: el dial 1–9 sintoniza (tocar el canal sintonizado vuelve a Auto), la perilla gira con el canal en pantalla y cada toque pasa al siguiente, y la «i» abre o cierra el rótulo de la señal a la derecha (oculto al empezar); sin emisión (mesa cerrada o sin señales), el tubo muestra la carta de ajuste. En `/mosaico` (respaldo `/al-aire/mosaico`): a la izquierda la pantalla principal con un selector de canal (Auto o 1–9, también con las teclas 0–9 o tocando un tubo); a la derecha el muro de 3×3 tubos, uno por canal, que rotan sus señales en cascada, y el rótulo de la señal principal. Si la mesa se cierra, muestra una carta de ajuste en blanco y negro con «No hay transmisión en este momento».
-- **Consola** (`consola.ciudadesinposibles.net`, respaldo `/consola`): la administración de la mesa, para computador. Se entra con Google. Permite crear mesas, abrirlas o cerrarlas, ver equipos y tomas, sacar tomas del aire y liberar nombres.
+- **Consola** (`consola.ciudadesinposibles.net`, respaldo `/consola`): la administración de la mesa, para computador. Se entra con Google. Permite crear mesas, abrirlas o cerrarlas, ver equipos y tomas, sacar tomas del aire y liberar nombres. También imprime la carta de cada señal en la térmica PeriPage A6 (papel de 57 mm, 384 puntos), una por una desde el detalle o todas desde «Imprimir cartas». Va por Web Bluetooth en Chrome de computador, sin emparejar la impresora en macOS; si no aparece, se usa el puerto serie que crea macOS al emparejarla.
 
 Se sigue la línea mínima del DS de la app: carcasa `papel`, tubo, pastillas, dial y visor con esquinas. Usa Gabarito y IBM Plex Mono, la paleta v18 y la textura barrido + estática. Es una interfaz con poco texto.
 
@@ -36,7 +36,7 @@ Se sigue la línea mínima del DS de la app: carcasa `papel`, tubo, pastillas, d
 ```
 src/main.jsx                  elige la vista según el hostname (carga Visor y Consola de forma diferida)
 src/comun/                    lo que comparten las tres aplicaciones
-  dominio/                    canales, toma (estados), tira, lectura (prompt + filtro), mesa, cola, archivo (zip/CSV/LEEME/cartas), borrado (plan)   ← puro, con tests
+  dominio/                    canales, toma (estados), tira, lectura (prompt + filtro), mesa, cola, archivo (zip/CSV/LEEME/cartas), borrado (plan), termica (difuminado y bytes de la PeriPage)   ← puro, con tests
   local/pantalla.js           pantalla completa
   red/                        firebase.js, mesa.js (unirse), muro.js (escuchar señales y si la mesa está abierta)
   estilos/app.css             el DS: papel, tubo, pastillas, textura
@@ -55,6 +55,7 @@ src/consola/                  la Consola (consola.ciudadesinposibles.net)
   red/borrar.js               borrado en lotes de ≤450, recibe `db` (se prueba con el emulador)
   archivo.js                  Archivo Ucrónico: arma y descarga el .zip (jszip se carga con import() diferido)
   Cartas.jsx, cartas.css      vista «Imprimir cartas»: 6 cartas de 63×88 mm por hoja carta/A4 horizontal
+  impresora/                  PeriPage A6 térmica: peripage.js (Web Bluetooth, respaldo Web Serial), cartaTermica.js (carta 48×88 mm en canvas), Termica.jsx (detalle de la señal y lote en «Imprimir cartas»)
 functions/                    servidor (codebase «aplicaciones»)
   index.js                    callable transmisorTransmitir; EXIGIR_APP_CHECK
   src/                        transmitir (núcleo), entrada (validación), tope (60 por hora), lectura, canales, openrouter
