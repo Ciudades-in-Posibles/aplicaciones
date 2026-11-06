@@ -68,12 +68,13 @@ export const CELDAS_DE_VECINOS = (() => {
 
 /**
  * Franja sin rastros alrededor de la biblioteca: las celdas a FRANJA_BIBLIOTECA celdas o menos de
- * cualquier celda de la biblioteca (≈ 56 m). Ningún vecino pasa por ahí, así que desde adentro nunca
- * se encuentra un rastro (el encuentro es a DISTANCIA_ENCUENTRO = 2), aunque el GPS del edificio
- * se corra una celda; la Antena sí muestra señal, para que salgan a buscar.
+ * cualquier celda de la biblioteca (≈ 38 m). Ningún vecino pasa por ahí, así que desde una celda de
+ * la biblioteca nunca se encuentra un rastro (el encuentro es a DISTANCIA_ENCUENTRO = 2); si el GPS
+ * del edificio se corre una celda hacia afuera, sí puede aparecer. La Antena muestra señal, para que
+ * salgan a buscar.
  * Decisión de MangleRojo, 6 nov 2026.
  */
-export const FRANJA_BIBLIOTECA = 3;
+export const FRANJA_BIBLIOTECA = 2;
 const CELDAS_BIBLIOTECA = CELDAS.filter((c) => etiquetas(c).includes('biblioteca'));
 export const CELDAS_FRANJA = new Set(CELDAS.filter((c) => CELDAS_BIBLIOTECA.some((b) => distancia(b, c) <= FRANJA_BIBLIOTECA)));
 
@@ -130,7 +131,7 @@ const cacheCasas = new Map();
 /**
  * Celdas del hábitat donde puede quedar una casa: a RADIO_CASA celdas o menos de la biblioteca.
  * Si el hábitat queda más lejos (la franja deja las primeras celdas a unas 5; la ribera está a unos
- * 280 m), las más cercanas: hasta 2 celdas más allá de la primera. Las casas quedan a 95–130 m.
+ * 280 m), las más cercanas: hasta 2 celdas más allá de la primera. Las casas quedan a 75–115 m.
  */
 export function casasPosibles(andar) {
   if (cacheCasas.has(andar)) return cacheCasas.get(andar);

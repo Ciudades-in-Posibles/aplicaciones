@@ -8,7 +8,7 @@ const MIN = 60 * 1000;
 /**
  * Andares: cómo se mueve un vecino. Propuesta del asistente; la Consola elige uno por vecino.
  * Todos viven del lado sur del río Arzobispo (CELDAS_DE_VECINOS en vecinos.js), sin pisar el agua,
- * y fuera de la franja de 3 celdas alrededor de la biblioteca (CELDAS_FRANJA).
+ * y fuera de la franja de 2 celdas alrededor de la biblioteca (CELDAS_FRANJA).
  * - habitat: etiquetas de la zona donde puede estar (nunca en «cruce»)
  * - ribera: en lugar de las etiquetas, las celdas a esa cantidad de celdas del agua o menos
  * - prefiere: etiquetas que pesan el triple al elegir el paso

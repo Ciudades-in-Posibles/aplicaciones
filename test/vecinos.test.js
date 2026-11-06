@@ -136,10 +136,10 @@ test('casas: lo más cerca posible de la biblioteca (RADIO_CASA, o 2 celdas más
   }
 });
 
-test('franja: ningún rastro a 3 celdas o menos de la biblioteca; desde adentro nunca hay encuentro, pero sí señal', () => {
+test('franja: ningún rastro a 2 celdas o menos de la biblioteca; desde adentro nunca hay encuentro, pero sí señal', () => {
   const bib = CELDAS.filter((c) => etiquetas(c).includes('biblioteca'));
-  assert.equal(FRANJA_BIBLIOTECA, 3);
-  assert.ok(FRANJA_BIBLIOTECA > DISTANCIA_ENCUENTRO);
+  assert.equal(FRANJA_BIBLIOTECA, 2);
+  assert.ok(FRANJA_BIBLIOTECA >= DISTANCIA_ENCUENTRO);
   for (const b of bib) assert.ok(CELDAS_FRANJA.has(b));
   for (const andar of Object.keys(ANDARES)) {
     for (const c of habitatDe(andar)) assert.ok(!CELDAS_FRANJA.has(c), `${andar}: ${c} en la franja`);
