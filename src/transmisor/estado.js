@@ -28,6 +28,7 @@ export function useJuego() {
   const [cola, setCola] = useState([]);
   const [muro, setMuro] = useState([]);
   const [vecinosMesa, setVecinosMesa] = useState([]);
+  const [bot, setBot] = useState(0); // canal del vecino que sigue este teléfono (objeto del maletín); 0 = todos
   const [enLinea, setEnLinea] = useState(navigator.onLine);
   const [aviso, setAviso] = useState(null);
 
@@ -52,6 +53,7 @@ export function useJuego() {
       setAbiertos(await local.leerAjuste('abiertos', {}));
       setMuro(await local.leerMuro());
       setVecinosMesa(await local.leerAjuste('vecinos', []));
+      setBot(await local.leerAjuste('bot', 0));
       // ya no hay «al aire de prueba»: las que quedaron así vuelven a la mesa de edición, con su canal
       for (const t of (await local.listarTomas()).filter((x) => x.prueba)) await local.guardarToma(deshacerPrueba(t));
       await recargar();
@@ -169,6 +171,9 @@ export function useJuego() {
 
   // ---- acciones ----
   const sintonizar = useCallback((n) => { setCanal(n); local.guardarAjuste('canal', n); }, []);
+
+  // el QR de un objeto del maletín: desde ahora la Antena sigue solo al vecino de ese canal (0 = todos)
+  const seguirBot = useCallback((n) => { setBot(n); return local.guardarAjuste('bot', n); }, []);
 
   const entrar = useCallback(async () => { setInicio(true); await local.guardarAjuste('inicio', true); }, []);
 
@@ -308,8 +313,8 @@ export function useJuego() {
   const vecinos = dePrueba ? VECINOS_DE_PRUEBA : vecinosMesa;
 
   return {
-    listo, equipo, inicio, canal, canales, tomas, tira, cola, muro: muroVisible, enLinea, aviso, setAviso, vecinos, dePrueba,
-    sintonizar, entrar, salir, unirse, salirDeMesa, guardarAbierto, registrar, editar, borrar, borrarVarias, asignar, moverEnTira,
+    listo, equipo, inicio, canal, canales, tomas, tira, cola, muro: muroVisible, enLinea, aviso, setAviso, vecinos, dePrueba, bot,
+    sintonizar, seguirBot, entrar, salir, unirse, salirDeMesa, guardarAbierto, registrar, editar, borrar, borrarVarias, asignar, moverEnTira,
     mandarAlAire, mandarVarias, cancelarEnvio, sacarDelAire
   };
 }

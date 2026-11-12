@@ -6,17 +6,19 @@ import Camara from './aparatos/Camara.jsx';
 import MesaTransmision from './aparatos/MesaTransmision.jsx';
 import { CartaCanal, CartaToma, CartaSenal } from './aparatos/Cartas.jsx';
 import Entrada, { FormularioMesa, otraMesa } from './Entrada.jsx';
-import { codigoDeEnlace } from '../comun/dominio/mesa.js';
+import { codigoDeEnlace, botDeEnlace } from '../comun/dominio/mesa.js';
 
-// El QR de la mesa abre el Transmisor con ?mesa=CÓDIGO. Se lee una vez y se quita de la URL,
-// para que recargar no vuelva a pedir unirse (se guarda aquí: el modo estricto llama dos veces).
+// El QR de la mesa abre el Transmisor con ?mesa=CÓDIGO, y el de un objeto del maletín, con ?bot=N.
+// Se leen una vez y se quitan de la URL, para que recargar no vuelva a pedir unirse
+// (se guardan aquí: el modo estricto llama dos veces).
 let enlace = null;
 function tomarEnlace() {
   if (enlace !== null) return enlace;
-  enlace = codigoDeEnlace(location.search);
+  enlace = { mesa: codigoDeEnlace(location.search), bot: botDeEnlace(location.search) };
   const u = new URL(location.href);
-  if (u.searchParams.has('mesa')) {
+  if (u.searchParams.has('mesa') || u.searchParams.has('bot')) {
     u.searchParams.delete('mesa');
+    u.searchParams.delete('bot');
     history.replaceState(history.state, '', `${u.pathname}${u.search}${u.hash}`);
   }
   return enlace;
@@ -37,7 +39,16 @@ export default function App() {
   const [aparato, setAparato] = useState('tv');
   const [carta, setCarta] = useState(null); // {tipo, ...}
   const [rastro, setRastro] = useState(null); // {canal, celda, vecino}: la próxima toma nace de este rastro
-  const [codigoEnlace, setCodigoEnlace] = useState(tomarEnlace);
+  const [codigoEnlace, setCodigoEnlace] = useState(() => tomarEnlace().mesa);
+  const [botEnlace, setBotEnlace] = useState(() => tomarEnlace().bot);
+
+  // el QR de un objeto: el teléfono sigue desde ahora al vecino de ese canal y abre la Antena
+  useEffect(() => {
+    if (!j.listo || botEnlace === null) return;
+    j.seguirBot(botEnlace);
+    if (botEnlace) setAparato('antena');
+    setBotEnlace(null);
+  }, [j.listo, botEnlace, j.seguirBot]);
 
   // ya dentro de la app: el enlace abre «Unirse» con el código puesto, o avisa si el equipo está en otra mesa
   useEffect(() => {
@@ -113,7 +124,7 @@ export default function App() {
         {aparato === 'antena' && (
           <Suspense fallback={null}>
             <Antena
-              vecinos={j.vecinos} dePrueba={j.dePrueba} canales={j.canales} pausa={!!carta}
+              vecinos={j.vecinos} dePrueba={j.dePrueba} canales={j.canales} pausa={!!carta} bot={j.bot} tomas={j.tomas}
               alRegistrar={(r) => { setRastro(r); setAparato('camara'); }}
             />
           </Suspense>

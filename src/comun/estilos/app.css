@@ -657,6 +657,9 @@ button { cursor: pointer; }
   display: grid; place-items: center; transition: left .3s ease;
 }
 .recorte .num { font: 900 13cqw/1 var(--f); color: var(--calle); }
+/* en los canales fijos, el recorte es la silueta del objeto del maletín */
+.recorte.silueta { width: 36cqw; background: none; border: 0; border-radius: 0; overflow: visible; }
+.recorte.silueta path { fill: var(--c); stroke: var(--calle); stroke-width: 4; stroke-linejoin: round; }
 .borde-flecha { position: absolute; top: 45%; z-index: 2; font: 900 10cqw/1 var(--f); color: var(--crema); text-shadow: 0 0 1cqw var(--calle); }
 .borde-flecha.izq { left: 4cqw; }
 .borde-flecha.der { right: 4cqw; }
@@ -696,6 +699,9 @@ button { cursor: pointer; }
 .mapa-r .vecino-r { transition: opacity .3s ease; }
 .mapa-r .vecino-r.apagado { opacity: .18; }
 /* el vecino que se sigue: su casa y todo su camino del día */
+/* las paradas vivas de cada vecino: lo que encuentra la Antena */
+.mapa-r .parada-r { fill: var(--c); fill-opacity: .55; stroke: var(--c); stroke-width: 2.6; stroke-linejoin: round; }
+.mapa-r .parada-r.vieja { fill-opacity: .3; stroke-dasharray: 5 3; }
 .mapa-r .casa-r { fill: none; stroke: var(--c); stroke-width: 2.4; stroke-linejoin: round; }
 .mapa-r .dia-r { fill: none; stroke: var(--c); stroke-width: 1.2; stroke-linejoin: round; stroke-linecap: round; opacity: .7; }
 .mapa-r .num-r { fill: var(--calle); font: 900 9px/1 var(--f); text-anchor: middle; pointer-events: none; }

@@ -5,9 +5,11 @@ import { ZONA, CELDAS, CELDA_BIBLIOTECA, enZona, etiquetas } from '../src/comun/
 import {
   ANDARES, celdaDelVecino, rastrosDelVecino, rastroMasCercano, intensidad, relojDelJuego, casaDe, habitatDe, rumbo,
   RASTROS_POR_VECINO, DISTANCIA_ENCUENTRO, ALCANCE_SENAL, CELDAS_DE_VECINOS, VECINOS_DE_PRUEBA,
-  RADIO_CASA, recorridoDelDia, inicioDelDia, CELDAS_FRANJA, FRANJA_BIBLIOTECA
+  RADIO_CASA, recorridoDelDia, inicioDelDia, CELDAS_FRANJA, FRANJA_BIBLIOTECA,
+  PARADAS_POR_VECINO, paradasDelVecino, paradasRegistradas, llaveDeParada, vecinosSeguidos
 } from '../src/comun/dominio/vecinos.js';
 import { RE_VECINO } from '../functions/src/entrada.js';
+import { OBJETOS, objetoDeCanal } from '../src/comun/dominio/objetos.js';
 
 // 6 nov 2026, en hora de Bogotá (UTC−5)
 const hora = (h, m = 0) => Date.UTC(2026, 10, 6, h + 5, m);
@@ -198,15 +200,96 @@ test('intensidad: limpia al lado del rastro, estática lejos', () => {
   assert.ok(intensidad(0, 0.2) < intensidad(0, 1));
 });
 
-test('rastroMasCercano: en la celda del rastro hay encuentro', () => {
+test('rastroMasCercano: en la celda de una parada hay encuentro', () => {
   const t = hora(11);
   const v = vecinos[0];
-  const celda = celdaDelVecino(v, t);
+  const celda = paradasDelVecino(v, t)[0].celda;
   const r = rastroMasCercano(celda, vecinos, t);
   assert.equal(r.distancia, 0);
   assert.equal(r.encontrado, true);
   assert.equal(r.senal, 1);
   assert.equal(rastroMasCercano(celda, [], t), null);
+});
+
+test('paradas: deterministas, máximo tres, separadas, en el camino del día, fuera de la franja y al sur del río', () => {
+  const deVecinos = new Set(CELDAS_DE_VECINOS);
+  assert.equal(PARADAS_POR_VECINO, 3);
+  for (const v of [...vecinos, ...VECINOS_DE_PRUEBA]) {
+    for (let m = 0; m < 24 * 60; m += 10) {
+      const t = hora(6) + m * 60000;
+      const p = paradasDelVecino(v, t);
+      assert.deepEqual(p, paradasDelVecino(v, t), v.id);
+      assert.ok(p.length >= 1 && p.length <= PARADAS_POR_VECINO, `${v.id}: ${p.length} paradas`);
+      const camino = new Set(recorridoDelDia(v, t));
+      for (let i = 0; i < p.length; i++) {
+        assert.equal(p[i].vecino, v.id);
+        assert.equal(p[i].edad, i);
+        assert.ok(camino.has(p[i].celda), `${v.id}: parada fuera de su camino`);
+        assert.ok(!CELDAS_FRANJA.has(p[i].celda), `${v.id}: parada en la franja`);
+        assert.ok(deVecinos.has(p[i].celda), `${v.id}: parada al norte del río`);
+        if (i) assert.ok(p[i].paso < p[i - 1].paso && p[i].intensidad < p[i - 1].intensidad, v.id);
+        for (let k = 0; k < i; k++) assert.ok(gridDistance(p[i].celda, p[k].celda) > DISTANCIA_ENCUENTRO, `${v.id}: paradas pegadas`);
+      }
+      assert.equal(p[0].intensidad, 1);
+    }
+  }
+});
+
+test('paradas: al empezar el día la única es la casa, y un andar quieto no deja más de tres', () => {
+  for (const v of vecinos) {
+    const p = paradasDelVecino(v, hora(6));
+    assert.equal(p.length, 1, v.id);
+    assert.equal(p[0].celda, casaDe(v));
+  }
+});
+
+test('paradas registradas: una parada con toma deja de llamar y la flecha pasa a la siguiente', () => {
+  const t = hora(16);
+  const v = vecinos.find((x) => x.andar === 'suelo');
+  const p = paradasDelVecino(v, t);
+  assert.ok(p.length >= 2, 'el vecino de suelo tiene al menos dos paradas a las 4 p.m.');
+  const aqui = p[0].celda;
+  const antes = rastroMasCercano(aqui, [v], t);
+  assert.equal(antes.celda, aqui);
+  assert.equal(antes.encontrado, true);
+
+  const tomas = [
+    { id: 'a', celda: aqui, vecino: v.id, creada: hora(15, 50) },
+    { id: 'b', celda: p[1].celda, vecino: v.id, creada: hora(15) - 24 * 3600 * 1000 }, // de ayer: no cuenta
+    { id: 'c', celda: p[1].celda, vecino: 'otro', creada: hora(15, 55) },              // de otro vecino: no cuenta
+    { id: 'd', creada: hora(15, 58) }                                                  // sin rastro
+  ];
+  const hechas = paradasRegistradas(tomas, t);
+  assert.ok(hechas.has(llaveDeParada(v.id, aqui)));
+  assert.ok(!hechas.has(llaveDeParada(v.id, p[1].celda)), 'las tomas de ayer o de otro vecino no cuentan');
+  assert.equal(hechas.size, 2);
+
+  const despues = rastroMasCercano(aqui, [v], t, hechas);
+  assert.notEqual(despues.celda, aqui);
+  assert.ok(p.slice(1).some((x) => x.celda === despues.celda));
+  assert.equal(despues.encontrado, false);
+
+  const todas = new Set(p.map((x) => llaveDeParada(v.id, x.celda)));
+  assert.equal(rastroMasCercano(aqui, [v], t, todas), null);
+});
+
+test('vecinosSeguidos: con el objeto, solo el vecino de ese canal; sin objeto, todos', () => {
+  assert.equal(vecinosSeguidos(vecinos, 0).length, vecinos.length);
+  assert.equal(vecinosSeguidos(vecinos, null).length, vecinos.length);
+  assert.deepEqual(vecinosSeguidos(vecinos, 3).map((v) => v.canal), [3]);
+  assert.deepEqual(vecinosSeguidos(vecinos, 9), []);
+});
+
+test('objetos: uno por canal fijo, con nombre, uso y una silueta cerrada dentro de su caja', () => {
+  assert.deepEqual(OBJETOS.map((o) => o.canal), [1, 2, 3, 4, 5, 6, 7]);
+  assert.equal(new Set(OBJETOS.map((o) => o.nombre)).size, 7);
+  for (const o of OBJETOS) {
+    assert.ok(o.nombre && o.uso, `canal ${o.canal}`);
+    assert.match(o.silueta, /^M[\d\s.,a-zA-Z-]+Z$/, `canal ${o.canal}`);
+    assert.equal(objetoDeCanal(o.canal), o);
+  }
+  assert.equal(objetoDeCanal(8), null);
+  assert.equal(objetoDeCanal(9), null);
 });
 
 test('rumbo: apunta al norte hacia la celda más al norte y al sur hacia la más al sur', () => {

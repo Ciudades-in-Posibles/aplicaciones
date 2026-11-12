@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { latLngToCell, gridDisk, cellToLatLng, getHexagonEdgeLengthAvg } from 'h3-js';
 import { ZONA, CELDA_BIBLIOTECA, RESOLUCION, enZona, etiquetas } from '../../comun/dominio/zona.js';
-import { rastroMasCercano, rumbo, distancia } from '../../comun/dominio/vecinos.js';
+import { rastroMasCercano, rumbo, distancia, paradasRegistradas, vecinosSeguidos } from '../../comun/dominio/vecinos.js';
+import { objetoDeCanal } from '../../comun/dominio/objetos.js';
 import { dibujarCeldas, centroDe, viewBox } from '../../comun/dominio/mapa.js';
 
 const TIC_MS = 10000; // los vecinos dan un paso cada 5 minutos o más: basta con mirar el reloj cada 10 s
@@ -148,8 +149,19 @@ function useCamara(activa) {
   return { flujo, fallo };
 }
 
-/** El rastro: un recorte plano de cartulina con el color y el número del canal. */
+/**
+ * El rastro: un recorte plano de cartulina con el color del canal. En los siete canales fijos es la
+ * silueta del objeto del maletín; en los abiertos (8 y 9), el número.
+ */
 function Recorte({ canal, estilo }) {
+  const objeto = objetoDeCanal(canal.n);
+  if (objeto) {
+    return (
+      <svg className="recorte silueta" viewBox="-5 -5 110 110" style={{ ...estilo, '--c': `var(--c${canal.n})` }} role="img" aria-label={objeto.nombre}>
+        <path d={objeto.silueta} fillRule="evenodd" />
+      </svg>
+    );
+  }
   return (
     <div className="recorte" style={{ ...estilo, '--c': `var(--c${canal.n})` }} aria-hidden="true">
       <span className={`num ${canal.n === 9 ? 'k9-t' : ''}`}>{canal.n}</span>
@@ -188,12 +200,16 @@ function MapaTubo({ centro, objetivo, encontrado, rumboTel, flecha, alMarcar, ca
 }
 
 /**
- * Antena: siguen los rastros que dejan los vecinos alrededor de la Biblioteca El Parque.
- * El tubo muestra estática que se aclara al acercarse a un rastro; la flecha da el rumbo.
- * Cerca del rastro aparece el recorte con el color del canal, y «Registrar este rastro»
- * abre la cámara con ese canal. Los vecinos no hablan: solo dejan rastros.
+ * Antena: siguen los rastros que dejan los vecinos alrededor de la Biblioteca El Parque, en los
+ * lugares donde se detuvieron (sus paradas). El tubo muestra estática que se aclara al acercarse;
+ * la flecha da el rumbo. Cerca aparece el recorte con el color del canal (la silueta del objeto del
+ * maletín), y «Registrar este rastro» abre la cámara con ese canal. Una parada ya registrada deja
+ * de llamar: la flecha lleva a la siguiente. Los vecinos no hablan: solo dejan rastros.
+ *
+ * `bot`: el canal del vecino que sigue este teléfono (lo pone el QR de un objeto); 0 = todos.
+ * `tomas`: las tomas del teléfono, para saber qué paradas ya registró.
  */
-export default function Antena({ vecinos, dePrueba, canales, pausa, alRegistrar }) {
+export default function Antena({ vecinos, dePrueba, canales, pausa, alRegistrar, bot = 0, tomas = [] }) {
   const [mirar, setMirar] = useState(false);
   const [t, setT] = useState(Date.now);
   useEffect(() => {
@@ -212,14 +228,16 @@ export default function Antena({ vecinos, dePrueba, canales, pausa, alRegistrar 
   // con GPS, el mapa solo se mira (si no, se podría «encontrar» un rastro sin moverse)
   const puedeMarcar = pos?.fuente === 'manual' || (!pos && !['esperando', 'buscando'].includes(estado));
   const dentro = pos && enZona(pos.celda);
-  const hallazgo = useMemo(() => (dentro && vecinos.length ? rastroMasCercano(pos.celda, vecinos, t) : null), [dentro, pos?.celda, vecinos, t]);
+  const seguidos = useMemo(() => vecinosSeguidos(vecinos, bot), [vecinos, bot]);
+  const registradas = useMemo(() => paradasRegistradas(tomas, t), [tomas, t]);
+  const hallazgo = useMemo(() => (dentro && seguidos.length ? rastroMasCercano(pos.celda, seguidos, t, registradas) : null), [dentro, pos?.celda, seguidos, t, registradas]);
   const encontrado = !!hallazgo?.encontrado;
   const senal = hallazgo?.senal || 0;
   // fuera de la zona, la flecha lleva a la biblioteca
   const destino = dentro ? hallazgo?.celda : pos ? CELDA_BIBLIOTECA : null;
   const rumboDestino = pos && destino && destino !== pos.celda ? rumbo(pos.celda, destino) : null;
   const flecha = rumboDestino == null ? null : brujula.rumboTel == null ? rumboDestino : delta(rumboDestino, brujula.rumboTel);
-  const canal = hallazgo ? canales[hallazgo.vecino.canal - 1] : canales[0];
+  const canal = hallazgo ? canales[hallazgo.vecino.canal - 1] : canales[(bot || 1) - 1];
   const lejos = pos && !dentro ? Math.round((distancia(pos.celda, CELDA_BIBLIOTECA) * LADO * Math.sqrt(3)) / 10) * 10 : null; // metros
 
   // estática: casi tapa el tubo lejos del rastro y se abre al llegar
@@ -277,13 +295,14 @@ export default function Antena({ vecinos, dePrueba, canales, pausa, alRegistrar 
         {encontrado ? (
           <>
             <p className="lente-lat">{canal.lente}</p>
-            <p className="etq">Rastro de «{hallazgo.vecino.nombre}»</p>
             <div className="acciones">
               <button className="btn" onClick={() => alRegistrar({ canal: canal.n, celda: hallazgo.celda, vecino: hallazgo.vecino.id })}>Registrar este rastro</button>
             </div>
           </>
         ) : !vecinos.length ? (
           <p className="aviso">Esta mesa todavía no tiene vecinos.</p>
+        ) : !seguidos.length ? (
+          <p className="aviso">Esta mesa no tiene un vecino en el canal {bot}.</p>
         ) : !pos ? (
           <>
             <p className="aviso">{SIN_UBICACION[estado]?.texto || 'Buscando dónde están…'}</p>
@@ -292,9 +311,12 @@ export default function Antena({ vecinos, dePrueba, canales, pausa, alRegistrar 
           </>
         ) : !dentro ? (
           <p className="aviso">Están fuera del parque de juego{Number.isFinite(lejos) ? `, a unos ${lejos} m` : ''}. La flecha lleva a la biblioteca.</p>
+        ) : !hallazgo ? (
+          <p className="aviso">Ya registraron los rastros que hay por ahora. Vuelvan a la mesa, o esperen: la señal regresa cuando aparezca otro.</p>
         ) : (
           <p className="lente-lat">{senal > 0.6 ? 'Muy cerca.' : senal > 0.25 ? 'Hay señal. Sigan la flecha.' : 'Solo estática. Caminen y miren si se aclara.'}</p>
         )}
+        {bot > 0 && seguidos.length > 0 && <p className="etq">Siguen a «{seguidos[0].nombre}» · canal {bot}</p>}
         {pos?.fuente === 'gps' && pos.precision > PRECISION_DEBIL && <p className="etq">Ubicación débil: ±{Math.round(pos.precision)} m</p>}
         {pos?.fuente === 'manual' && <button className="enlace etq" data-permiso onClick={usarGps}>Usar la ubicación del teléfono</button>}
         {dePrueba && <p className="etq">Vecinos de prueba · solo en este teléfono</p>}

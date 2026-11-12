@@ -14,14 +14,15 @@ const MIN = 60 * 1000;
  * - prefiere: etiquetas que pesan el triple al elegir el paso
  * - pasoMin: minutos entre pasos; salto: hasta cuántas celdas avanza en un paso
  * - noche: solo se mueve de 17:30 a 6:00; de día queda en su casa
+ * - parada: cada cuántos pasos se detiene y deja una parada (ver paradasDelVecino en vecinos.js)
  */
 export const ANDARES = {
-  quieto: { nombre: 'Quieto', ejemplo: 'musgo, liquen', habitat: ['arboles', 'prado', 'orilla', 'edificio'], prefiere: ['arboles'], pasoMin: 60, salto: 1 },
+  quieto: { nombre: 'Quieto', ejemplo: 'musgo, liquen', habitat: ['arboles', 'prado', 'orilla', 'edificio'], prefiere: ['arboles'], pasoMin: 60, salto: 1, parada: 1 },
   // la orilla sur sola queda partida en islas de 5 y 11 celdas: la ribera de 3 celdas (≈ 55 m) le da 35
-  rio: { nombre: 'Por el agua', ejemplo: 'quebrada, renacuajo', habitat: ['orilla'], ribera: 3, prefiere: ['orilla'], pasoMin: 5, salto: 1 },
-  copas: { nombre: 'Entre copas', ejemplo: 'mirla, colibrí', habitat: ['arboles', 'prado', 'orilla'], prefiere: ['arboles', 'orilla'], pasoMin: 5, salto: 3 },
-  suelo: { nombre: 'A ras del suelo', ejemplo: 'hormigas, lombriz', habitat: ['prado', 'orilla', 'arboles', 'edificio'], prefiere: ['prado'], pasoMin: 10, salto: 1 },
-  noche: { nombre: 'De noche', ejemplo: 'zarigüeya, polilla', habitat: ['prado', 'arboles', 'orilla'], prefiere: ['arboles'], pasoMin: 5, salto: 1, noche: { desde: (17 * 60 + 30) * MIN } }
+  rio: { nombre: 'Por el agua', ejemplo: 'quebrada, renacuajo', habitat: ['orilla'], ribera: 3, prefiere: ['orilla'], pasoMin: 5, salto: 1, parada: 3 },
+  copas: { nombre: 'Entre copas', ejemplo: 'mirla, colibrí', habitat: ['arboles', 'prado', 'orilla'], prefiere: ['arboles', 'orilla'], pasoMin: 5, salto: 3, parada: 3 },
+  suelo: { nombre: 'A ras del suelo', ejemplo: 'hormigas, lombriz', habitat: ['prado', 'orilla', 'arboles', 'edificio'], prefiere: ['prado'], pasoMin: 10, salto: 1, parada: 2 },
+  noche: { nombre: 'De noche', ejemplo: 'zarigüeya, polilla', habitat: ['prado', 'arboles', 'orilla'], prefiere: ['arboles'], pasoMin: 5, salto: 1, parada: 3, noche: { desde: (17 * 60 + 30) * MIN } }
 };
 
 export const ANDAR_POR_DEFECTO = 'suelo';

@@ -2,7 +2,9 @@
  * Vecinos multiespecie en la zona H3 de la Biblioteca El Parque. Lógica pura, sin red.
  *
  * Los vecinos no hablan ni se presentan: dejan rastros. Cada vecino tiene un canal (la lente con
- * que se registra su rastro) y un andar (cómo se mueve). Su posición sale de una fórmula
+ * que se registra su rastro) y un andar (cómo se mueve). No dejan un rastro continuo: los equipos
+ * encuentran solo sus paradas, los lugares donde se detuvieron (paradasDelVecino). El camino
+ * completo se ve en el Visor. Su posición sale de una fórmula
  * determinista: todos los teléfonos y el Visor calculan lo mismo con el mismo reloj, sin que el
  * servidor escriba nada.
  *
@@ -23,7 +25,8 @@ const INICIO_DIA = 6 * 60 * MIN; // 6:00
 const DIA = 24 * 60 * MIN;
 
 // celdas de resolución 12 (≈ 11 m de lado, ≈ 19 m de un centro al siguiente)
-export const RASTROS_POR_VECINO = 10;
+export const RASTROS_POR_VECINO = 10; // el sendero que dibuja el Visor
+export const PARADAS_POR_VECINO = 3; // las paradas vivas: lo que la Antena encuentra
 export const DISTANCIA_ENCUENTRO = 2; // a dos celdas o menos (≈ 40 m), el rastro aparece: cubre el error del GPS
 export const ALCANCE_SENAL = 12; // más lejos de 12 celdas (≈ 225 m) solo hay estática
 
@@ -226,6 +229,7 @@ export function recorridoDelDia(vecino, t) {
 /**
  * Rastros del vecino en t: las últimas celdas distintas por las que pasó, de la más reciente a la
  * más vieja. `intensidad` va de 1 (donde está ahora) a 1/RASTROS_POR_VECINO.
+ * Es el sendero que dibuja el Visor; la Antena busca las paradas (paradasDelVecino).
  * @returns {{vecino: string, celda: string, edad: number, intensidad: number}[]}
  */
 export function rastrosDelVecino(vecino, t, n = RASTROS_POR_VECINO) {
@@ -239,6 +243,55 @@ export function rastrosDelVecino(vecino, t, n = RASTROS_POR_VECINO) {
     out.push({ vecino: vecino.id, celda: r[i], edad: out.length, intensidad: 1 - out.length / n });
   }
   return out;
+}
+
+// ---- paradas ----
+
+/**
+ * Paradas del vecino en t: los lugares donde se detuvo hoy y que siguen vivos, de la más reciente a
+ * la más vieja. Es lo que encuentra la Antena (decisión de MangleRojo, 12 nov 2026: los vecinos se
+ * mueven, pero no dejan un rastro continuo).
+ *
+ * El movimiento es el mismo de siempre. El vecino se detiene en su casa y después cada `parada`
+ * pasos de su andar. Si donde se detiene queda a DISTANCIA_ENCUENTRO celdas o menos de otra parada
+ * viva, no deja una nueva: así dos paradas nunca se confunden. Quedan vivas las últimas `n`.
+ * @returns {{vecino: string, celda: string, paso: number, edad: number, intensidad: number}[]}
+ */
+export function paradasDelVecino(vecino, t, n = PARADAS_POR_VECINO) {
+  const { dia, desdeInicio } = relojDelJuego(t);
+  const a = ANDARES[andarDe(vecino)];
+  const r = recorrido(vecino, dia, pasosHoy(a, desdeInicio));
+  const cada = Math.max(1, a.parada || 1);
+  const vivas = [];
+  for (let i = 0; i < r.length; i += cada) {
+    if (vivas.some((p) => distancia(p.celda, r[i]) <= DISTANCIA_ENCUENTRO)) continue;
+    vivas.push({ celda: r[i], paso: i });
+    if (vivas.length > n) vivas.shift();
+  }
+  return vivas.reverse().map((p, edad) => ({ vecino: vecino.id, celda: p.celda, paso: p.paso, edad, intensidad: 1 - edad / n }));
+}
+
+/** La llave de una parada: el vecino y la celda. */
+export const llaveDeParada = (vecino, celda) => `${vecino}|${celda}`;
+
+/**
+ * Las paradas que este teléfono ya registró hoy: las tomas que nacieron de un rastro en el día del
+ * juego de t. La Antena deja de llamar a esas paradas y lleva a la siguiente.
+ * @param {{celda?: string, vecino?: string, creada: number}[]} tomas
+ * @returns {Set<string>} llaves de llaveDeParada
+ */
+export function paradasRegistradas(tomas, t) {
+  const { dia } = relojDelJuego(t);
+  const llaves = new Set();
+  for (const x of tomas) {
+    if (x.celda && x.vecino && relojDelJuego(x.creada).dia === dia) llaves.add(llaveDeParada(x.vecino, x.celda));
+  }
+  return llaves;
+}
+
+/** Los vecinos que sigue el equipo: el de su canal si tomó un objeto del maletín; si no, todos. */
+export function vecinosSeguidos(vecinos, bot) {
+  return bot ? vecinos.filter((v) => v.canal === bot) : vecinos;
 }
 
 // ---- cercanía ----
@@ -260,14 +313,17 @@ export function intensidad(dist, intensidadRastro = 1) {
 }
 
 /**
- * El rastro más cercano a la celda del equipo, entre todos los vecinos.
- * A igual distancia gana el rastro más fresco.
+ * La parada más cercana a la celda del equipo, entre todos los vecinos que sigue.
+ * A igual distancia gana la más reciente. `omitir` trae las paradas que el equipo ya registró
+ * (paradasRegistradas): no cuentan.
+ * @param {Set<string>} [omitir]
  * @returns {null | {vecino: object, celda: string, edad: number, intensidad: number, distancia: number, senal: number, encontrado: boolean}}
  */
-export function rastroMasCercano(celdaEquipo, vecinos, t) {
+export function rastroMasCercano(celdaEquipo, vecinos, t, omitir = null) {
   let mejor = null;
   for (const v of vecinos) {
-    for (const r of rastrosDelVecino(v, t)) {
+    for (const r of paradasDelVecino(v, t)) {
+      if (omitir?.has(llaveDeParada(v.id, r.celda))) continue;
       const d = distancia(celdaEquipo, r.celda);
       if (!mejor || d < mejor.distancia || (d === mejor.distancia && r.intensidad > mejor.intensidad)) {
         mejor = { ...r, vecino: v, distancia: d };

@@ -28,6 +28,31 @@ export function codigoDeEnlace(search) {
   return codigoValido(c) ? normalizarCodigo(c) : '';
 }
 
+/** Los canales con un objeto en el maletín: los siete fijos. */
+export const BOTS = 7;
+
+/**
+ * El enlace del QR de un objeto del maletín: abre el Transmisor siguiendo solo al vecino de ese canal.
+ * Con `codigo`, además trae puesto el código de la mesa.
+ */
+export function urlDeBot(canal, codigo = '') {
+  const n = Number(canal);
+  if (!Number.isInteger(n) || n < 1 || n > BOTS) throw new Error('El objeto va con un canal del 1 al 7.');
+  return codigoValido(codigo) ? `${urlDeMesa(codigo)}&bot=${n}` : `${TRANSMISOR}/?bot=${n}`;
+}
+
+/**
+ * El canal que trae un enlace `?bot=N`: 1–7 para seguir a ese vecino, 0 para volver a seguirlos a
+ * todos, null si el enlace no dice nada (o algo que no vale).
+ */
+export function botDeEnlace(search) {
+  let b = null;
+  try { b = new URLSearchParams(search || '').get('bot'); } catch { return null; }
+  if (b === null || !/^[0-9]$/.test(b)) return null;
+  const n = Number(b);
+  return n <= BOTS ? n : null;
+}
+
 export function limpiarNombreEquipo(nombre) {
   return String(nombre || '').replace(/\s+/g, ' ').trim().slice(0, MAX_NOMBRE_EQUIPO);
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CELDAS, CELDA_BIBLIOTECA, CENTRO, etiquetas, enZona } from '../comun/dominio/zona.js';
-import { rastrosDelVecino, recorridoDelDia, casaDe, inicioDelDia, ANDARES, VECINOS_DE_PRUEBA } from '../comun/dominio/vecinos.js';
+import { rastrosDelVecino, paradasDelVecino, recorridoDelDia, casaDe, inicioDelDia, ANDARES, VECINOS_DE_PRUEBA } from '../comun/dominio/vecinos.js';
 import { dibujarCeldas, centroDe, viewBox, teselas, trazo, proyeccion } from '../comun/dominio/mapa.js';
 import { MAPA_BASE } from './mapaBase.js';
 import { CANALES } from '../comun/dominio/canales.js';
@@ -172,8 +172,8 @@ function Reloj({ reloj }) {
 
 /**
  * Mapa de rastros (visor…/rastros): la zona en hexágonos H3 alrededor de la biblioteca, los senderos
- * de los vecinos (sus rastros, que se desvanecen) y las tomas que salieron al aire desde un rastro,
- * cada una en su celda. Un vecino con al menos una toma al aire tiene escaño.
+ * de los vecinos (sus rastros, que se desvanecen), sus paradas vivas (las celdas resaltadas: lo que
+ * encuentra la Antena) y las tomas que salieron al aire desde un rastro, cada una en su celda. Un vecino con al menos una toma al aire tiene escaño.
  */
 export default function Rastros({ vecinos: vecinosMesa, senales }) {
   // una mesa sin vecinos muestra los de prueba, como la Antena; mientras llegan los de la mesa
@@ -234,7 +234,8 @@ export default function Rastros({ vecinos: vecinosMesa, senales }) {
   const bib = useMemo(() => centroDe(CELDA_BIBLIOTECA, CENTRO), []);
   const senderos = useMemo(() => vecinos.map((v) => ({
     v,
-    rastros: rastrosDelVecino(v, t).map((r) => ({ ...r, xy: centroDe(r.celda, CENTRO) }))
+    rastros: rastrosDelVecino(v, t).map((r) => ({ ...r, xy: centroDe(r.celda, CENTRO) })),
+    paradas: paradasDelVecino(v, t)
   })), [vecinos, t]);
   const puntosDe = useMemo(() => Object.fromEntries(poligonos.map((p) => [p.celda, p.puntos])), [poligonos]);
   const vSeguido = vecinos.find((v) => v.id === seguido) || null;
@@ -283,10 +284,11 @@ export default function Rastros({ vecinos: vecinosMesa, senales }) {
             {camino.pasos > 0 && <polyline className="dia-r" points={camino.puntos} />}
           </g>
         )}
-        {conVecinos && senderos.map(({ v, rastros }) => {
+        {conVecinos && senderos.map(({ v, rastros, paradas }) => {
           const cabeza = rastros[0];
           return (
             <g key={v.id} className={`vecino-r ${seguido && seguido !== v.id ? 'apagado' : ''}`} style={{ '--c': `var(--c${v.canal})` }}>
+              {paradas.map((p) => puntosDe[p.celda] && <polygon key={p.celda} className={`parada-r ${p.edad ? 'vieja' : ''}`} points={puntosDe[p.celda]} />)}
               {rastros.length > 1 && <polyline className="sendero" points={rastros.map((r) => r.xy.join(',')).join(' ')} />}
               {rastros.slice(1).map((r) => <circle key={r.celda} className="rastro" cx={r.xy[0]} cy={r.xy[1]} r={3 + 5 * r.intensidad} style={{ opacity: 0.25 + 0.75 * r.intensidad }} />)}
               {cabeza && (
