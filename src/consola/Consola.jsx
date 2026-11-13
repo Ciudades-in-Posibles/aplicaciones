@@ -13,7 +13,8 @@ import { DIGITOS_CLAVE, limpiarDigitos } from '../comun/dominio/maletin.js';
 const VISOR = 'https://visor-ciudadesinposibles.web.app';
 
 /**
- * Manda la clave al maletín del Visor (/maletin), que se abre si coincide con la de su enlace.
+ * Manda la clave al maletín del Visor (/maletin). La Consola la compara con la de admin/maletin y el
+ * Visor se abre si coincide.
  * El campo se vacía al enviar, para que la clave no quede a la vista.
  */
 function MaletinVisor({ mesa }) {
@@ -23,9 +24,9 @@ function MaletinVisor({ mesa }) {
   const enviar = async (valor) => {
     setAviso('');
     try {
-      await red.enviarAlMaletin(mesa.id, valor);
+      const abre = await red.enviarAlMaletin(mesa.id, valor);
       setDigitos('');
-      setAviso(valor ? 'Enviada. El Visor la prueba en el maletín.' : 'Cerrado.');
+      setAviso(!valor ? 'Cerrado.' : abre ? 'Clave correcta: el maletín se abre en el Visor.' : 'Esa clave no abre el maletín.');
     } catch (err) {
       setAviso(`No se pudo enviar (${err.code || err.message}).`);
     }
@@ -39,7 +40,7 @@ function MaletinVisor({ mesa }) {
         <button className="btn peq" type="submit" disabled={digitos.length !== DIGITOS_CLAVE}>Abrir</button>
         <button className="btn sec peq" type="button" onClick={() => enviar('')}>Cerrar</button>
       </div>
-      <p className="etq">{aviso || (enviado ? 'La última clave sigue en la mesa hasta cerrar.' : 'El Visor en /maletin compara los seis números con la clave de su enlace.')}</p>
+      <p className="etq">{aviso || (enviado ? 'La última clave sigue en la mesa hasta cerrar.' : 'El Visor en /maletin se abre con la clave correcta.')}</p>
     </form>
   );
 }

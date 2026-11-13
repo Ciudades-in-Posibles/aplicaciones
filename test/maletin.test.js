@@ -30,14 +30,16 @@ test('sin clave, el maletín no se abre con nada', () => {
 test('los dígitos se limpian y se cortan en seis', () => {
   assert.equal(limpiarDigitos(' 1a2-3 4567'), '123456');
   assert.equal(limpiarDigitos(null), '');
-  assert.deepEqual(datosDeMaletin('12-3', 4), { digitos: '123', n: 4 });
-  assert.deepEqual(datosDeMaletin('', -1), { digitos: '', n: 0 });
+  assert.deepEqual(datosDeMaletin('12-3', 4), { digitos: '123', n: 4, abre: false });
+  assert.deepEqual(datosDeMaletin('', -1), { digitos: '', n: 0, abre: false });
 });
 
 test('el Visor lee el maletín de la mesa solo si trae contador', () => {
   assert.equal(maletinDeMesa({}), null);
   assert.equal(maletinDeMesa({ maletin: { digitos: '1' } }), null);
-  assert.deepEqual(maletinDeMesa({ maletin: { digitos: '123456', n: 2 } }), { digitos: '123456', n: 2 });
+  assert.deepEqual(maletinDeMesa({ maletin: { digitos: '123456', n: 2 } }), { digitos: '123456', n: 2, abre: false });
+  assert.deepEqual(maletinDeMesa({ maletin: { digitos: '123456', n: 3, abre: true } }), { digitos: '123456', n: 3, abre: true });
+  assert.equal(maletinDeMesa({ maletin: { digitos: '1', n: 3, abre: 'si' } }).abre, false);
 });
 
 test('la convocatoria remite a la página de la Asamblea', () => {

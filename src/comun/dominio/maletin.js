@@ -54,14 +54,18 @@ export function comprobarClave(digitos, clave) {
   return !!clave && clave.length === DIGITOS_CLAVE && limpiarDigitos(digitos) === clave;
 }
 
-/** Lo que la Consola escribe en la mesa: los dígitos (vacío para cerrar) y un contador de envíos. */
-export function datosDeMaletin(digitos, n) {
-  return { digitos: limpiarDigitos(digitos), n: Number.isInteger(n) && n >= 0 ? n : 0 };
+/**
+ * Lo que la Consola escribe en la mesa: los dígitos (vacío para cerrar), un contador de envíos y si la
+ * clave abre (`abre`). La Consola compara con la clave de admin/maletin, que solo ella lee, y las
+ * reglas comprueban que `abre` diga la verdad.
+ */
+export function datosDeMaletin(digitos, n, abre = false) {
+  return { digitos: limpiarDigitos(digitos), n: Number.isInteger(n) && n >= 0 ? n : 0, abre: abre === true };
 }
 
 /** Lo que el Visor lee de la mesa; null si la mesa no trae nada del maletín. */
 export function maletinDeMesa(datos) {
   const m = datos?.maletin;
   if (!m || typeof m !== 'object' || !Number.isInteger(m.n)) return null;
-  return datosDeMaletin(m.digitos, m.n);
+  return datosDeMaletin(m.digitos, m.n, m.abre);
 }

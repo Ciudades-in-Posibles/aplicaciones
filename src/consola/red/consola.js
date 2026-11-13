@@ -7,7 +7,7 @@ import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from
 import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, writeBatch
 } from 'firebase/firestore';
-import { limpiarDigitos } from '../../comun/dominio/maletin.js';
+import { comprobarClave, limpiarDigitos } from '../../comun/dominio/maletin.js';
 import { auth, db } from '../../comun/red/firebase.js';
 import { normalizarCodigo, codigoValido, MAX_NOMBRE_MESA } from '../../comun/dominio/mesa.js';
 import { borrarMesaEn } from './borrar.js';
@@ -64,9 +64,17 @@ export function cambiarAbierta(mesa, abierta) {
  * El maletín del Visor (/maletin): manda los dígitos y el Visor los compara con la clave de su enlace.
  * Vacío cierra la tapa (y la clave deja de estar en la mesa). `n` cuenta los envíos.
  */
-export function enviarAlMaletin(mesa, digitos) {
+export async function enviarAlMaletin(mesa, digitos) {
+  const d = limpiarDigitos(digitos);
+  let abre = false;
+  if (d) {
+    const c = await getDoc(doc(db, 'admin', 'maletin'));
+    if (!c.exists() || !c.data().clave) throw new Error('Falta la clave del maletín (documento admin/maletin, campo «clave»).');
+    abre = comprobarClave(d, String(c.data().clave));
+  }
   // por campos: si se reemplaza el mapa entero, el contador vuelve a empezar y el Visor no ve el envío
-  return updateDoc(doc(db, 'mesas', mesa), { 'maletin.digitos': limpiarDigitos(digitos), 'maletin.n': increment(1) });
+  await updateDoc(doc(db, 'mesas', mesa), { 'maletin.digitos': d, 'maletin.n': increment(1), 'maletin.abre': abre });
+  return abre;
 }
 
 export function renombrar(mesa, nombre) {

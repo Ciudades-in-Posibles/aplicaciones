@@ -36,15 +36,25 @@ service cloud.firestore {
       return d[campo] is string && d[campo].size() <= maximo;
     }
 
-    // El maletín del Visor (/maletin): la Consola manda hasta seis dígitos y un contador de envíos.
+    // El maletín del Visor (/maletin): la Consola manda hasta seis dígitos, un contador de envíos y
+    // si abren. La clave vive en admin/maletin (campo «clave»), fuera del código; `abre` tiene que
+    // coincidir con ella. Sin ese documento, nada abre.
+    function claveMaletin() {
+      return exists(/databases/$(database)/documents/admin/maletin)
+        ? get(/databases/$(database)/documents/admin/maletin).data.get('clave', '') : '';
+    }
     function maletinValido(m) {
-      return m is map && m.keys().hasOnly(['digitos', 'n'])
+      return m is map && m.keys().hasOnly(['digitos', 'n', 'abre'])
         && m.digitos is string && m.digitos.matches('^[0-9]{0,6}$')
-        && m.n is int;
+        && m.n is int
+        && m.get('abre', false) == (m.digitos.size() == 6 && m.digitos == claveMaletin());
     }
 
+    // admin/consola no se lee desde ningún cliente; admin/maletin solo lo lee la Consola.
+    // Los dos se editan en la consola de Firebase.
     match /admin/{doc} {
-      allow read, write: if false;
+      allow get: if doc == 'maletin' && esConsola();
+      allow write: if false;
     }
 
     match /mesas/{mesa} {

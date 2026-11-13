@@ -169,7 +169,14 @@ export default function Maletin({ raiz = '' }) {
   const [entrada, setEntrada] = useState('');
   const [mal, setMal] = useState(false);
   const [estado, setEstado] = useState('cerrado'); // cerrado · abriendo · abierto · cerrando
-  const [mesa] = useState(() => { try { return normalizarCodigo(localStorage.getItem('transmisor-pantalla')); } catch { return ''; } });
+  // la mesa del Visor (la que se puso en su portada) o la del enlace: /maletin?mesa=CÓDIGO
+  const [mesa] = useState(() => {
+    const delEnlace = normalizarCodigo(new URLSearchParams(location.search).get('mesa') || '');
+    try {
+      if (delEnlace) localStorage.setItem('transmisor-pantalla', delEnlace);
+      return delEnlace || normalizarCodigo(localStorage.getItem('transmisor-pantalla'));
+    } catch { return delEnlace; }
+  });
   const [conMesa, setConMesa] = useState(false);
   const quiereAbierto = useRef(false);
   const relojes = useRef([]);
@@ -199,8 +206,9 @@ export default function Maletin({ raiz = '' }) {
     visor.current?.cerrar(inmediato || reducido());
   }, []);
 
-  const probar = useCallback((digitos) => {
-    if (comprobarClave(digitos, clave)) {
+  // abre: la Consola ya comparó con la clave de admin/maletin; sin ella, la del enlace (#NNN-NNN)
+  const probar = useCallback((digitos, abre = false) => {
+    if (abre || comprobarClave(digitos, clave)) {
       despues(350, () => { setEntrada(''); abrir(); });
     } else {
       setMal(true);
@@ -221,7 +229,7 @@ export default function Maletin({ raiz = '' }) {
     const tecla = (e) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === 'f' || e.key === 'F') { alternarPantallaCompleta(); return; }
-      if (estadoRef.current !== 'cerrado' || mal) return;
+      if (estadoRef.current !== 'cerrado' || mal || !clave) return; // sin clave en el enlace, solo la Consola abre
       const d = entradaRef.current;
       if (/^[0-9]$/.test(e.key)) {
         e.preventDefault();
@@ -240,7 +248,7 @@ export default function Maletin({ raiz = '' }) {
     };
     window.addEventListener('keydown', tecla);
     return () => window.removeEventListener('keydown', tecla);
-  }, [mal, probar]);
+  }, [mal, probar, clave]);
 
   // desde la Consola: cada envío nuevo llega dígito por dígito; vacío cierra la tapa
   useEffect(() => {
@@ -257,7 +265,7 @@ export default function Maletin({ raiz = '' }) {
         if (ultimo === null) {
           ultimo = n;
           // al recargar: si la Consola ya lo abrió, se muestra abierto sin repetir la escena
-          if (m && comprobarClave(m.digitos, clave)) abrir(true);
+          if (m && (m.abre || comprobarClave(m.digitos, clave))) abrir(true);
           return;
         }
         if (!m || n === ultimo) return;
@@ -268,7 +276,7 @@ export default function Maletin({ raiz = '' }) {
         if (estadoRef.current !== 'cerrado') return;
         setEntrada('');
         [...m.digitos].forEach((_, i) => despues(MS_DIGITO * (i + 1), () => setEntrada(m.digitos.slice(0, i + 1))));
-        if (m.digitos.length === DIGITOS_CLAVE) despues(MS_DIGITO * (DIGITOS_CLAVE + 1), () => probar(m.digitos));
+        if (m.digitos.length === DIGITOS_CLAVE) despues(MS_DIGITO * (DIGITOS_CLAVE + 1), () => probar(m.digitos, m.abre));
       }, () => setConMesa(false));
     }).catch(() => vivo && setConMesa(false));
     return () => { vivo = false; parar(); limpiarRelojes(); };
@@ -563,8 +571,7 @@ export default function Maletin({ raiz = '' }) {
       <footer className="pie">
         <span className="pie-a">
           <span>Maletín</span>
-          {!clave && <span className="nota-m">Sin clave</span>}
-          {mesa && !conMesa && <span className="nota-m">Sin mesa</span>}
+          {(mesa ? !conMesa : !clave) && <span className="nota-m">Sin mesa</span>}
         </span>
         <span className="mandos">
           <button onClick={alternarPantallaCompleta}>Pantalla completa</button>
