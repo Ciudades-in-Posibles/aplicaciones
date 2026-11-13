@@ -762,3 +762,23 @@ button { cursor: pointer; }
 .escena-m img, .escena-m canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
 .escena-m.listo img { display: none; }
 .al-aire.maletin-v.quieto .escena-m { cursor: none; }
+/* la clave: dos cerraduras de latón con tres casillas cada una; no muestran los dígitos */
+.cerraduras-m {
+  position: absolute; left: 50%; bottom: 6vw; transform: translateX(-50%); z-index: 6;
+  display: flex; gap: 2.4vw; pointer-events: none;
+}
+.cerradura-m {
+  display: flex; gap: .7vw; padding: .9vw 1.1vw; border-radius: .5vw .9vw .5vw .9vw;
+  background: #c9a24a; box-shadow: inset 0 0 0 .2vw #8a6a24;
+}
+.cerradura-m i { width: 2.4vw; height: 3.2vw; border-radius: .3vw; background: var(--calle); transition: background .15s; }
+.cerradura-m i.lleno { background: var(--crema); }
+.cerraduras-m.mal { animation: temblor-m .5s ease; }
+.cerraduras-m.mal .cerradura-m i.lleno { background: var(--rojo); }
+@keyframes temblor-m {
+  0%, 100% { transform: translateX(-50%); }
+  20%, 60% { transform: translateX(calc(-50% - 1.2vw)); }
+  40%, 80% { transform: translateX(calc(-50% + 1.2vw)); }
+}
+@media (prefers-reduced-motion: reduce) { .cerraduras-m.mal { animation: none; } }
+.maletin-v .nota-m { color: var(--naranja-claro); }

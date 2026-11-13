@@ -21,6 +21,14 @@ export function escucharAbierta(mesa, alCambiar, alFallar = () => {}) {
   }, alFallar);
 }
 
+/** El documento de la mesa tal cual (el maletín del Visor lee ahí lo que manda la Consola). */
+export function escucharMesa(mesa, alCambiar, alFallar = () => {}) {
+  return onSnapshot(doc(db, 'mesas', mesa), (snap) => {
+    if (!snap.exists() && snap.metadata.fromCache) return;
+    alCambiar(snap.data() || null);
+  }, alFallar);
+}
+
 /** Los vecinos de la mesa (los crea la Consola). Su posición se calcula en cada teléfono. */
 export function escucharVecinos(mesa, alCambiar, alFallar = () => {}) {
   return onSnapshot(collection(db, 'mesas', mesa, 'vecinos'), (snap) => {

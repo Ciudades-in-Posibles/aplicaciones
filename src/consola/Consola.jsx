@@ -7,9 +7,42 @@ import Cartas from './Cartas.jsx';
 import { TermicaSenal, TermicaQR } from './impresora/Termica.jsx';
 import { exportarArchivo } from './archivo.js';
 import { ANDARES } from '../comun/dominio/andares.js';
+import { DIGITOS_CLAVE, limpiarDigitos } from '../comun/dominio/maletin.js';
 
 // cuando visor.ciudadesinposibles.net esté conectado en Hosting, puede ir aquí
 const VISOR = 'https://visor-ciudadesinposibles.web.app';
+
+/**
+ * Manda la clave al maletín del Visor (/maletin), que se abre si coincide con la de su enlace.
+ * El campo se vacía al enviar, para que la clave no quede a la vista.
+ */
+function MaletinVisor({ mesa }) {
+  const [digitos, setDigitos] = useState('');
+  const [aviso, setAviso] = useState('');
+  const enviado = mesa.maletin?.digitos?.length === DIGITOS_CLAVE;
+  const enviar = async (valor) => {
+    setAviso('');
+    try {
+      await red.enviarAlMaletin(mesa.id, valor);
+      setDigitos('');
+      setAviso(valor ? 'Enviada. El Visor la prueba en el maletín.' : 'Cerrado.');
+    } catch (err) {
+      setAviso(`No se pudo enviar (${err.code || err.message}).`);
+    }
+  };
+  return (
+    <form className="campo c-maletin" onSubmit={(e) => { e.preventDefault(); if (digitos.length === DIGITOS_CLAVE) enviar(digitos); }}>
+      <label htmlFor="mc">Clave del maletín</label>
+      <div className="fila-campo">
+        <input id="mc" inputMode="numeric" autoComplete="off" placeholder="000-000" value={digitos}
+          onChange={(e) => setDigitos(limpiarDigitos(e.target.value))} />
+        <button className="btn peq" type="submit" disabled={digitos.length !== DIGITOS_CLAVE}>Abrir</button>
+        <button className="btn sec peq" type="button" onClick={() => enviar('')}>Cerrar</button>
+      </div>
+      <p className="etq">{aviso || (enviado ? 'La última clave sigue en la mesa hasta cerrar.' : 'El Visor en /maletin compara los seis números con la clave de su enlace.')}</p>
+    </form>
+  );
+}
 
 function hora(t) {
   const d = t?.toDate ? t.toDate() : t ? new Date(t) : null;
@@ -150,6 +183,7 @@ function Mesa({ mesa }) {
   const [nombre, setNombre] = useState(mesa.nombre || '');
   const [copiado, setCopiado] = useState(false);
   const [qr, setQr] = useState(false);
+  const [maletin, setMaletin] = useState(false);
   const [aviso, setAviso] = useState(null); // {texto, mal?, reintentar?}: lo que pasa con el archivo o el borrado
   const [trabajando, setTrabajando] = useState(false);
   const [cartas, setCartas] = useState(false);
@@ -211,8 +245,10 @@ function Mesa({ mesa }) {
           <b>{mesa.id}</b>
           <button className="btn sec peq" onClick={async () => { await navigator.clipboard?.writeText(mesa.id); setCopiado(true); setTimeout(() => setCopiado(false), 1500); }}>{copiado ? 'Copiado' : 'Copiar'}</button>
           <button className="btn sec peq" onClick={() => setQr((q) => !q)} aria-expanded={qr}>QR</button>
+          <button className="btn sec peq" onClick={() => setMaletin((m) => !m)} aria-expanded={maletin}>Maletín</button>
         </div>
         {qr && <TermicaQR mesa={mesa} />}
+        {maletin && <MaletinVisor mesa={mesa} />}
         <form className="campo" onSubmit={(e) => { e.preventDefault(); red.renombrar(mesa.id, nombre); }}>
           <label htmlFor="mn">Nombre de la mesa</label>
           <div className="fila-campo">

@@ -36,6 +36,13 @@ service cloud.firestore {
       return d[campo] is string && d[campo].size() <= maximo;
     }
 
+    // El maletín del Visor (/maletin): la Consola manda hasta seis dígitos y un contador de envíos.
+    function maletinValido(m) {
+      return m is map && m.keys().hasOnly(['digitos', 'n'])
+        && m.digitos is string && m.digitos.matches('^[0-9]{0,6}$')
+        && m.n is int;
+    }
+
     match /admin/{doc} {
       allow read, write: if false;
     }
@@ -49,9 +56,10 @@ service cloud.firestore {
         && request.resource.data.abierta is bool
         && mesa.matches('^[A-Z0-9]{4,16}$');
       allow update: if esConsola()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'abierta'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nombre', 'abierta', 'maletin'])
         && texto(request.resource.data, 'nombre', 60)
-        && request.resource.data.abierta is bool;
+        && request.resource.data.abierta is bool
+        && (!('maletin' in request.resource.data) || maletinValido(request.resource.data.maletin));
       // «Borrar mesa» en la Consola: primero vacía las subcolecciones y al final borra la mesa.
       allow delete: if esConsola();
 
