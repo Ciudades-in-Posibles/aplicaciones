@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CITA, limpiarDigitos, claveDesdeHash, comprobarClave, datosDeMaletin, maletinDeMesa } from '../src/comun/dominio/maletin.js';
+import { CITA, CONVOCATORIA, limpiarDigitos, claveDesdeHash, comprobarClave, datosDeMaletin, maletinDeMesa } from '../src/comun/dominio/maletin.js';
 
 test('la cita tiene diez líneas y su crédito', () => {
   assert.equal(CITA.lineas.length, 10);
@@ -38,4 +38,8 @@ test('el Visor lee el maletín de la mesa solo si trae contador', () => {
   assert.equal(maletinDeMesa({}), null);
   assert.equal(maletinDeMesa({ maletin: { digitos: '1' } }), null);
   assert.deepEqual(maletinDeMesa({ maletin: { digitos: '123456', n: 2 } }), { digitos: '123456', n: 2 });
+});
+
+test('la convocatoria remite a la página de la Asamblea', () => {
+  assert.equal(CONVOCATORIA.url, `https://${CONVOCATORIA.direccion}/`);
 });

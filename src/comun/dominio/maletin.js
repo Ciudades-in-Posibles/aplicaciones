@@ -27,6 +27,18 @@ export const CITA = {
 };
 
 /** Solo los dígitos, hasta seis. */
+/**
+ * El pie de la carta: remite a la página de la Asamblea en el sitio, que lleva la cuenta regresiva
+ * (17 nov 2026, 5 p.m., hora de Bogotá). El QR de la hoja abre `url`.
+ */
+export const CONVOCATORIA = {
+  remitente: 'Sociedad de',
+  evento: 'Asamblea de la Sociedad',
+  cuando: 'Martes 17 de noviembre · 5 p.m.',
+  url: 'https://ciudadesinposibles.net/sociedad/',
+  direccion: 'ciudadesinposibles.net/sociedad'
+};
+
 export function limpiarDigitos(texto) {
   return String(texto ?? '').replace(/[^0-9]/g, '').slice(0, DIGITOS_CLAVE);
 }

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { alternarPantallaCompleta } from '../comun/local/pantalla.js';
 import { normalizarCodigo } from '../comun/dominio/mesa.js';
-import { CITA, DIGITOS_CLAVE, claveDesdeHash, comprobarClave, maletinDeMesa } from '../comun/dominio/maletin.js';
+import { CITA, CONVOCATORIA, DIGITOS_CLAVE, claveDesdeHash, comprobarClave, maletinDeMesa } from '../comun/dominio/maletin.js';
+import { matrizQR } from '../comun/dominio/qr.js';
 import { unirPantalla } from '../comun/red/mesa.js';
 import { escucharMesa } from '../comun/red/muro.js';
 
@@ -31,35 +32,129 @@ function leerClave() {
   return delEnlace;
 }
 
-/** La cita en papel, con tinta negra: Gabarito para leer, Plex Mono para el crédito. */
+const TINTA = '#0b0b0c';
+const PAPEL = '#f5f3ea';
+const CREMA = '#ffffbf';
+const AMARILLO = '#fed24f';
+// los nueve canales, en orden (paleta v18): la retícula del membrete
+const CANALES = ['#da4a57', '#f46d43', '#fed24f', '#e6f598', '#abdda4', '#66c2a5', '#3288bd', '#fdae61', '#6a5bb0'];
+const GAB = (peso, px) => `${peso} ${px}px Gabarito, system-ui, sans-serif`;
+const MONO = (px) => `500 ${px}px "IBM Plex Mono", ui-monospace, monospace`;
+
+function rect(g, x, y, w, h, r, color) {
+  g.fillStyle = color;
+  g.beginPath();
+  g.roundRect(x, y, w, h, r);
+  g.fill();
+}
+
+/** El televisor del logo (public/icono.svg, 512 × 512) en `s` px. */
+function dibujarLogo(g, x, y, s) {
+  const k = s / 512;
+  const R = (a, b, w, h, r, c) => rect(g, x + a * k, y + b * k, w * k, h * k, r * k, c);
+  R(0, 0, 512, 512, 96, TINTA);
+  R(64, 112, 384, 288, 56, PAPEL);
+  R(92, 140, 250, 232, 40, TINTA);
+  R(118, 166, 70, 70, 14, AMARILLO);
+  R(364, 150, 28, 28, 8, '#da4a57');
+  R(400, 150, 28, 28, 8, '#66c2a5');
+  R(364, 186, 28, 28, 8, '#3288bd');
+  R(400, 186, 28, 28, 8, '#6a5bb0');
+  g.fillStyle = TINTA;
+  g.beginPath(); g.arc(x + 396 * k, y + 320 * k, 34 * k, 0, Math.PI * 2); g.fill();
+}
+
+/** La marca en su tira: «Ciudades(In)Posibles» en crema sobre calle, con «(In)» en amarillo. Devuelve el ancho. */
+function dibujarMarca(g, x, y, f) {
+  g.font = GAB(900, f);
+  const partes = ['Ciudades', '(In)', 'Posibles'];
+  const [a, b, c] = partes.map((p) => g.measureText(p).width);
+  const pad = [0.18 * f, 0.11 * f, 0.09 * f];
+  const inPad = 0.1 * f;
+  const ancho = pad[0] * 2 + a + b + c + inPad * 2 + 0.14 * f;
+  const alto = f * 0.94 + pad[1] + pad[2];
+  rect(g, x, y, ancho, alto, [0.1 * f, 0.04 * f, 0.12 * f, 0.05 * f], TINTA);
+  const base = y + pad[1] + f * 0.78;
+  let cx = x + pad[0];
+  g.fillStyle = CREMA; g.fillText(partes[0], cx, base); cx += a + 0.08 * f;
+  rect(g, cx, y + pad[1] + f * 0.04, b + inPad * 2, f * 0.86, [0.06 * f, 0.03 * f, 0.08 * f, 0.04 * f], AMARILLO);
+  g.fillStyle = TINTA; g.fillText(partes[1], cx + inPad, base); cx += b + inPad * 2 + 0.06 * f;
+  g.fillStyle = CREMA; g.fillText(partes[2], cx, base);
+  return ancho;
+}
+
+/**
+ * La carta de la tapa, en papel con tinta negra: el membrete de la Sociedad (logo, marca y la retícula
+ * de los nueve canales), la cita en Gabarito con su crédito en Plex Mono y, al pie, la convocatoria a
+ * la Asamblea con el QR de la página que lleva la cuenta regresiva.
+ */
 function dibujarHoja(canvas) {
   const [W, H] = HOJA_PX;
   canvas.width = W; canvas.height = H;
   const g = canvas.getContext('2d');
-  g.fillStyle = '#f5f3ea';
+  g.fillStyle = PAPEL;
   g.fillRect(0, 0, W, H);
-  g.fillStyle = '#0b0b0c';
   g.textBaseline = 'alphabetic';
+  const m = Math.round(W * 0.05);
 
-  const margen = W * 0.085;
-  const ancho = W - 2 * margen;
+  // membrete
+  const s = Math.round(H * 0.08);
+  dibujarLogo(g, m, m, s);
+  const x0 = m + s + Math.round(s * 0.28);
+  const mono = Math.round(s * 0.27);
+  g.font = MONO(mono);
+  g.letterSpacing = `${(mono * 0.14).toFixed(1)}px`;
+  g.fillStyle = TINTA;
+  g.fillText(CONVOCATORIA.remitente.toUpperCase(), x0, m + mono * 0.82);
+  g.letterSpacing = '0px';
+  const f = Math.round(s * 0.5);
+  dibujarMarca(g, x0, m + s - (f * 0.94 + 0.2 * f), f);
+  const celda = Math.round(s * 0.28);
+  const hueco = (s - celda * 3) / 2;
+  CANALES.forEach((color, i) => {
+    rect(g, W - m - s + (i % 3) * (celda + hueco), m + Math.floor(i / 3) * (celda + hueco), celda, celda, celda * 0.28, color);
+  });
+  const filete = Math.max(2, Math.round(H * 0.002));
+  const arriba = m + s + Math.round(s * 0.26);
+  g.fillStyle = TINTA;
+  g.fillRect(m, arriba, W - 2 * m, filete);
+
+  // pie: la convocatoria y el QR de la página
+  const qr = matrizQR(CONVOCATORIA.url);
+  const mod = Math.floor((H * 0.16) / qr.tam);
+  const lado = mod * qr.tam;
+  const qx = W - m - lado;
+  const qy = H - m - lado;
+  g.fillStyle = TINTA;
+  for (let y = 0; y < qr.tam; y++) for (let x = 0; x < qr.tam; x++) if (qr.oscuro(x, y)) g.fillRect(qx + x * mod, qy + y * mod, mod, mod);
+  const abajo = qy - Math.round(s * 0.3);
+  g.fillRect(m, abajo, W - 2 * m, filete);
+  const p = Math.round(s * 0.33);
+  g.font = MONO(p);
+  g.letterSpacing = `${(p * 0.08).toFixed(1)}px`;
+  g.fillText(CONVOCATORIA.direccion, m, H - m);
+  g.fillText(CONVOCATORIA.cuando.toUpperCase(), m, H - m - p * 1.6);
+  g.letterSpacing = '0px';
+  g.font = GAB(800, Math.round(p * 1.7));
+  g.fillText(CONVOCATORIA.evento, m, H - m - p * 1.6 - p * 2);
+
+  // la cita, lo más grande que quepa entre los dos filetes
+  const ancho = W - 2 * m;
+  const caja = abajo - arriba - 2 * Math.round(s * 0.4);
   let t = 100;
-  g.font = `400 ${t}px Gabarito, system-ui, sans-serif`;
+  g.font = GAB(400, t);
   const masAncha = Math.max(...CITA.lineas.map((l) => g.measureText(l).width));
-  t = Math.floor(t * ancho / masAncha);
-  const credito = Math.round(t * 0.5);
-  const paso = t * 1.36;
-  const alto = paso * (CITA.lineas.length - 1) + t + credito * 3.2;
-  if (alto > H - 2 * margen * 0.8) t = Math.floor(t * (H - 2 * margen * 0.8) / alto);
-  const pasoF = t * 1.36;
-  const altoF = pasoF * (CITA.lineas.length - 1) + t + Math.round(t * 0.5) * 3.2;
-
-  let y = (H - altoF) / 2 + t * 0.8;
-  g.font = `400 ${t}px Gabarito, system-ui, sans-serif`;
-  for (const linea of CITA.lineas) { g.fillText(linea, margen, y); y += pasoF; }
-  const c = Math.round(t * 0.5);
-  g.font = `500 ${c}px "IBM Plex Mono", ui-monospace, monospace`;
-  g.fillText(`${CITA.autor} · ${CITA.obra}`.toUpperCase(), margen, y - pasoF + c * 3.2);
+  const PASO = 1.32;
+  const altoDe = (u) => u * PASO * (CITA.lineas.length - 1) + u + u * 0.5 * 2.6;
+  t = Math.floor(Math.min(t * ancho / masAncha, caja / (altoDe(100) / 100)));
+  let y = arriba + (abajo - arriba - altoDe(t)) / 2 + t * 0.8;
+  g.font = GAB(400, t);
+  for (const linea of CITA.lineas) { g.fillText(linea, m, y); y += t * PASO; }
+  const c = Math.round(t * 0.56);
+  g.font = MONO(c);
+  g.letterSpacing = `${(c * 0.08).toFixed(1)}px`;
+  g.fillText(`${CITA.autor} · ${CITA.obra}`.toUpperCase(), m, y - t * PASO + c * 2.6);
+  g.letterSpacing = '0px';
 }
 
 export default function Maletin({ raiz = '' }) {
@@ -272,6 +367,7 @@ export default function Maletin({ raiz = '' }) {
       tapa.add(hoja);
       document.fonts?.ready.then(() => Promise.all([
         document.fonts.load('400 64px Gabarito'),
+        document.fonts.load('900 64px Gabarito'),
         document.fonts.load('500 32px "IBM Plex Mono"')
       ])).then(() => { if (vivo) { dibujarHoja(lienzo); textura.needsUpdate = true; } }).catch(() => {});
 
@@ -448,7 +544,7 @@ export default function Maletin({ raiz = '' }) {
         tabIndex={0}
         role="img"
         aria-label={estado === 'abierto'
-          ? `Maletín abierto. En la tapa, una hoja dice: ${CITA.lineas.join(' ')} ${CITA.autor}, ${CITA.obra}.`
+          ? `Maletín abierto. En la tapa, una carta con el membrete de la Sociedad de Ciudades(In)Posibles dice: ${CITA.lineas.join(' ')} ${CITA.autor}, ${CITA.obra}. Al pie: ${CONVOCATORIA.evento}, ${CONVOCATORIA.cuando}, ${CONVOCATORIA.direccion}.`
           : 'Maletín de cuero café con asa acolchada y dos cerraduras doradas de combinación. Se gira arrastrando o con las flechas.'}
         onKeyDown={tecla}
       >
