@@ -75,7 +75,7 @@ Con cualquier fondo, los hexágonos se vuelven translúcidos. `teselas()` y `tra
 ## En el servidor
 
 `functions/` es el codebase `aplicaciones` del proyecto (el sitio tiene el suyo, `default`). `transmisorTransmitir` es una callable v2 en `us-central1`, con el secreto `OPENROUTER_API_KEY`, 90 s y 512 MiB. Para cada llamada:
-1. Exige sesión. App Check queda en modo monitor (`EXIGIR_APP_CHECK = false` en `functions/index.js`): solo se registra en el log si llega el token. Hacia el 10 de noviembre se pasa a `true`. Nunca se exige App Check en Firestore.
+1. Exige sesión. App Check queda en modo monitor (`EXIGIR_APP_CHECK = false` en `functions/index.js`): solo se registra en el log si llega el token. Pasarlo a `true` se había planeado hacia el 10 de noviembre y sigue pendiente de decisión. Nunca se exige App Check en Firestore.
 2. Valida la entrada con los mismos límites que las reglas: canal entero de 1 a 9, nota de hasta 280 caracteres, imagen JPEG en data URL de menos de 900000 caracteres, id de toma de 8 a 64 caracteres. El rastro es opcional y va completo: una celda de la zona y un vecino.
 3. Comprueba que la mesa existe y está abierta, y que quien llama es un equipo de esa mesa. El nombre del equipo sale de su documento.
 4. Si la señal con ese id ya existe, responde `al-aire` con su descripción, sin volver a leer.

@@ -79,6 +79,6 @@ baja/                         avisos de los subdominios viejos visor. y consola.
 - **Límites del cambio a una sola app** (aceptados): instalada como app, abre siempre `/` con el nombre «Transmisor»; en el computador de la Consola hay que volver a emparejar la impresora PeriPage (Web Bluetooth guarda el permiso por origen) y volver a elegir sus ajustes y la mesa, que vivían en `localStorage`; las pantallas del Visor deben escribir de nuevo el código de la mesa.
 - `npx -y firebase-tools@latest deploy --only firestore:transmisor` para publicar las reglas.
 - `npx -y firebase-tools@latest deploy --only functions:aplicaciones` para publicar la función (necesita el secreto `OPENROUTER_API_KEY` en Secret Manager).
-- App Check: la clave de reCAPTCHA Enterprise («Transmisor», solo dominios del Transmisor) está en `.env.production` como `VITE_RECAPTCHA_SITE_KEY` desde el 1 nov 2026. Hacia el 10 nov se pasa `EXIGIR_APP_CHECK` a `true` en `functions/index.js`. Nunca se exige en Firestore.
+- App Check: la clave de reCAPTCHA Enterprise («Transmisor», solo dominios del Transmisor) está en `.env.production` como `VITE_RECAPTCHA_SITE_KEY` desde el 1 nov 2026. `EXIGIR_APP_CHECK` sigue en `false` en `functions/index.js` (modo monitor): pasarlo a `true` se había planeado hacia el 10 nov 2026 y quedó sin hacer; se decide antes de cambiarlo. Nunca se exige en Firestore.
 
 Ver `docs/arquitectura.md` y `docs/stack.md`.
