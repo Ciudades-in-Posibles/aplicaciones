@@ -4,12 +4,12 @@
 
 ## Organización del código
 
-`src/` se divide por aplicación; las tres salen del mismo build y `src/main.jsx` elige la vista por el hostname.
+`src/` se divide por aplicación; las tres vistas salen del mismo build y `src/main.jsx` elige la vista por la ruta (`comun/dominio/rutas.js`).
 
 - `src/comun/`: lo compartido. `dominio/` (lógica pura, sin React ni Firebase, con tests), `local/pantalla.js`, `red/` (`firebase.js`, `mesa.js`, `muro.js`), `estilos/app.css` y `Confirmar.jsx`.
 - `src/transmisor/`: la app del teléfono. `App.jsx`, `Entrada.jsx`, `estado.js`, `appcheck.js`, `aparatos/` (Televisor, Antena, Camara, MesaTransmision, Cartas), `local/` (`db.js`, `foto.js`) y `red/transmitir.js`.
 - `src/visor/`: `AlAire.jsx`, la vista de solo lectura, y `Rastros.jsx`, el mapa de rastros.
-- `src/consola/`: `Consola.jsx` y `red/consola.js`, la administración de la mesa. Además: `archivo.js` (Archivo Ucrónico en .zip: `tomas/<canal>-<nombre>/<codigo>-<equipo>.jpg`, `archivo.csv` con BOM y `LEEME.txt`), `Cartas.jsx` + `cartas.css` (impresión de cartas con `window.print()`) y `red/borrar.js` (borrar mesa: respuestas, señales, vecinos, equipos, nombres, pantallas y mesa, en lotes de 450; idempotente).
+- `src/consola/`: `Consola.jsx` y `red/consola.js`, la administración de la mesa; `red/firebase.js` abre su propia app de Firebase («consola»), para que su sesión de Google no pise la anónima de los equipos. Además: `archivo.js` (Archivo Ucrónico en .zip: `tomas/<canal>-<nombre>/<codigo>-<equipo>.jpg`, `archivo.csv` con BOM y `LEEME.txt`), `Cartas.jsx` + `cartas.css` (impresión de cartas con `window.print()`) y `red/borrar.js` (borrar mesa: respuestas, señales, vecinos, equipos, nombres, pantallas y mesa, en lotes de 450; idempotente).
 - `functions/`: el servidor del Transmisor (codebase `aplicaciones`): la callable `transmisorTransmitir`, con su propio `package.json` y sus tests.
 
 Una aplicación importa de `comun/`, nunca de otra aplicación. La norma de redacción de los avisos está en `docs/guia-de-voz.md`.
@@ -32,7 +32,7 @@ La base Firestore es `transmisor`, en el proyecto `ciudades-in-posibles` (nam5):
 mesas/{CODIGO}                         ← se crea en la Consola: {nombre, abierta, creada}
   nombres/{llave}                      ← nombre único de equipo: {uid}
   equipos/{uid}                        ← {nombre, llave, creado, lecturas}; `lecturas: {ventana, n}` lo escribe solo el servidor (tope por hora)
-  pantallas/{uid}                      ← proyección en visor.ciudadesinposibles.net (o /al-aire)
+  pantallas/{uid}                      ← proyección en la vista `/visor`
   vecinos/{id}                         ← los crea la Consola: {nombre ≤40, canal 1–9, andar, creado}; su posición no se guarda
   senales/{idToma}                     ← {uid, equipo, canal, canalNombre, lente, codigo, nota, pregunta, descripcion, imagen, creada, hora, celda?, vecino?}
     respuestas/{id}                    ← heredadas: ya no se crean ni se muestran; las reglas aún las permiten

@@ -9,8 +9,7 @@ import { exportarArchivo } from './archivo.js';
 import { ANDARES } from '../comun/dominio/andares.js';
 import { DIGITOS_CLAVE, limpiarDigitos } from '../comun/dominio/maletin.js';
 
-// cuando visor.ciudadesinposibles.net esté conectado en Hosting, puede ir aquí
-const VISOR = 'https://visor-ciudadesinposibles.web.app';
+const VISOR = '/visor';
 
 /**
  * Manda la clave al maletín del Visor (/maletin). La Consola la compara con la de admin/maletin y el

@@ -10,4 +10,4 @@
 | idb | Envoltorio mínimo de IndexedDB, donde viven las tomas en el teléfono. |
 | firebase | Relevo: auth anónima, Firestore (base `transmisor`) y la llamada a la Function del LLM. |
 
-No hay Tailwind ni router. Los estilos son CSS plano con los tokens del DS, y las rutas son dos: `/` y `/al-aire`.
+No hay Tailwind ni router. Los estilos son CSS plano con los tokens del DS, y las rutas las elige `src/comun/dominio/rutas.js`: `/` (el Transmisor), `/visor` (con `/visor/mosaico`, `/visor/rastros` y `/visor/maletin`) y `/consola`.

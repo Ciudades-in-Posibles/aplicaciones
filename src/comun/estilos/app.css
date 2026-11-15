@@ -551,6 +551,9 @@ button { cursor: pointer; }
 .entrada form { display: grid; gap: 12px; }
 .entrada .campo input { padding: 10px 12px; }
 .entrada .dato { margin: 0; font: 500 .75rem/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-2); }
+.entrada .otras { font: 500 .75rem/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-2); display: flex; gap: 8px; margin-top: 24px; grid-column: 1 / -1; }
+.entrada .otras a { color: inherit; text-decoration: none; }
+.entrada .otras a:hover, .entrada .otras a:focus-visible { color: var(--crema); text-decoration: underline; }
 
 /* entrada en vertical: wordmark arriba, botones abajo */
 @media (orientation: portrait) {

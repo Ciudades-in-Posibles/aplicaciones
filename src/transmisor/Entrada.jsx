@@ -74,6 +74,11 @@ export default function Entrada({ equipo, alEntrar, alUnirse, alSalirDeMesa, cod
         </div>
       )}
       </div>
+      <nav className="otras" aria-label="Otras vistas">
+        <a href="/visor">Visor</a>
+        <span aria-hidden="true">·</span>
+        <a href="/consola">Consola</a>
+      </nav>
     </main>
   );
 }

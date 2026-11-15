@@ -8,13 +8,16 @@ import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, writeBatch
 } from 'firebase/firestore';
 import { comprobarClave, limpiarDigitos } from '../../comun/dominio/maletin.js';
-import { auth, db } from '../../comun/red/firebase.js';
+import { auth, db } from './firebase.js';
+import * as muro from '../../comun/red/muro.js';
 import { normalizarCodigo, codigoValido, MAX_NOMBRE_MESA } from '../../comun/dominio/mesa.js';
 import { borrarMesaEn } from './borrar.js';
 
 import { datosDeVecino } from '../../comun/dominio/andares.js';
 
-export { escucharMuro, escucharVecinos } from '../../comun/red/muro.js';
+// El muro se lee con la conexión de la Consola, no con la de los equipos.
+export const escucharMuro = (mesa, alCambiar, alFallar) => muro.escucharMuro(mesa, alCambiar, alFallar, db);
+export const escucharVecinos = (mesa, alCambiar, alFallar) => muro.escucharVecinos(mesa, alCambiar, alFallar, db);
 
 export function escucharSesion(alCambiar) {
   return onAuthStateChanged(auth, alCambiar);

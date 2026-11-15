@@ -36,7 +36,7 @@
     },
     {
       "target": "visor",
-      "public": "dist",
+      "public": "baja",
       "cleanUrls": true,
       "trailingSlash": false,
       "ignore": [
@@ -47,6 +47,15 @@
       "headers": [
         {
           "source": "/sw.js",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        },
+        {
+          "source": "/index.html",
           "headers": [
             {
               "key": "Cache-Control",
@@ -64,7 +73,7 @@
     },
     {
       "target": "consola",
-      "public": "dist",
+      "public": "baja",
       "cleanUrls": true,
       "trailingSlash": false,
       "ignore": [
@@ -75,6 +84,15 @@
       "headers": [
         {
           "source": "/sw.js",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        },
+        {
+          "source": "/index.html",
           "headers": [
             {
               "key": "Cache-Control",
